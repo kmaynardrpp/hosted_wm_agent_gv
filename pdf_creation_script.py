@@ -1,549 +1,329 @@
-# pdf_creation_script.py
-"""
-PDF builder (Letter-like) with Redpoint header using matplotlib PdfPages.
-
-Now with:
-- Exact page size 8.1 × 11.0 in
-- Tiny header meta (top-right, ~5× smaller) with safe wrapping
-- Table anti-overflow (column width calc + cell wrapping)
-- Minutes formatter (max 6 chars)
-- Atomic write helper + fallback ('lite' mode)
-- Local filesystem only (NO /mnt/data, NO sandbox): logo auto-resolves from local ROOT
-"""
+# ------------------------------------------------------------------------------
+# pdf_creation_script.py — Robust PDF builder for InfoZone
+#
+# Public API (unchanged):
+#   - safe_build_pdf(report: dict, output_path: str, logo_path: str|None = None, dpi: int = 120) -> None
+#   - build_pdf(report: dict, output_path: str, logo_path: str|None = None, dpi: int = 120) -> None
+#
+# Notes:
+#   * Root resolution prefers BATCH_WALMART_ROOT > INFOZONE_ROOT > file parent > CWD.
+#   * If logo_path is None or missing, tries ROOT/redpoint_logo.png automatically.
+#   * Expects 'report' dict like:
+#       {
+#         "title": "Walmart Renovation RTLS Summary",
+#         "meta": "string for header/footer",
+#         "sections": [
+#           {"type":"summary", "title":"Summary", "bullets":[...]},
+#           {"type":"table", "title":"Evidence", "data":[{...}], "headers":[...], "rows_per_page": 24},
+#           {"type":"charts","title":"Figures","figures":[<matplotlib.figure.Figure>, ...]}
+#         ]
+#       }
+#   * Figures must be live Matplotlib Figure objects (not file paths/Axes).
+#   * Atomic write: writes to a temporary file and then replaces output_path.
+# ------------------------------------------------------------------------------
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+import io
+import os
+import shutil
+import tempfile
 
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from PIL import Image
 
-# ---------------------------------------------------------------------
-# ROOT resolution (LOCAL ONLY — never use /mnt/data)
-# ---------------------------------------------------------------------
+# Root resolution (batch/CLI friendly)
 def _resolve_root() -> Path:
-    root = Path(os.environ.get("INFOZONE_ROOT", "")).resolve()
-    if not root or not root.exists():
-        root = Path(__file__).resolve().parent
-    if not root or not root.exists():
-        root = Path.cwd().resolve()
-    return root
+    for env_name in ("BATCH_WALMART_ROOT", "INFOZONE_ROOT"):
+        v = os.environ.get(env_name, "").strip()
+        if v:
+            p = Path(v).resolve()
+            if p.exists():
+                return p
+    p = Path(__file__).resolve().parent
+    if p.exists():
+        return p
+    return Path.cwd().resolve()
 
 ROOT = _resolve_root()
 
-# ---------------------------------------------------------------------
-# HARD PAGE SIZE & GLOBAL STYLE
-# ---------------------------------------------------------------------
-PAGE_W_IN, PAGE_H_IN = 8.1, 11.0               # inches (exact)
-PAGE_SIZE = (PAGE_W_IN, PAGE_H_IN)
+# ReportLab imports
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
 
-# Physical regions (inches)
-MARGIN_L_IN = 0.50
-MARGIN_R_IN = 0.50
-MARGIN_TOP_IN = 0.35
-MARGIN_BOT_IN = 0.50
-
-HEADER_H_IN = 1.00
-FOOTER_H_IN = 0.40
-
-DEFAULT_DPI = 120  # crisp but reasonable speed
-
-plt.rcParams.update({
-    "figure.dpi": DEFAULT_DPI,
-    "savefig.dpi": DEFAULT_DPI,
-    "font.size": 10,
-    "axes.titlesize": 14,
-    "axes.labelsize": 10,
-    "xtick.labelsize": 9,
-    "ytick.labelsize": 9,
-    "legend.fontsize": 9,
-    # Embed TrueType → crisp selectable text
-    "pdf.fonttype": 42,
-    "ps.fonttype": 42,
-    # Compress PDF streams to shrink output & speed writes
-    "pdf.compression": 9,
-})
-
-# Brand colors
-REDPOINT_RED = "#E1262D"
-INK = "#222222"
-MUTED = "#666A73"
-
-# ---------------------------------------------------------------------
-# LAYOUT HELPERS
-# ---------------------------------------------------------------------
-def _inset_rect_in_fig(x_in: float, y_in: float, w_in: float, h_in: float) -> List[float]:
-    """Convert an inch-rect into a Matplotlib 'add_axes' rect [x0,y0,w,h] in figure-fractions."""
-    return [
-        x_in / PAGE_W_IN,
-        y_in / PAGE_H_IN,
-        w_in / PAGE_W_IN,
-        h_in / PAGE_H_IN,
-    ]
+# Matplotlib (Agg, no GUI)
+import matplotlib
+matplotlib.use("Agg")
+from matplotlib.backends.backend_agg import FigureCanvasAgg  # noqa: E402
 
 
-def _regions() -> Tuple[List[float], List[float], List[float]]:
-    """Return (header_rect, content_rect, footer_rect) in figure fractions."""
-    header_rect = _inset_rect_in_fig(
-        MARGIN_L_IN,
-        PAGE_H_IN - (MARGIN_TOP_IN + HEADER_H_IN),
-        PAGE_W_IN - MARGIN_L_IN - MARGIN_R_IN,
-        HEADER_H_IN,
-    )
-    footer_rect = _inset_rect_in_fig(
-        MARGIN_L_IN,
-        MARGIN_BOT_IN,
-        PAGE_W_IN - MARGIN_L_IN - MARGIN_R_IN,
-        FOOTER_H_IN,
-    )
-    content_rect = _inset_rect_in_fig(
-        MARGIN_L_IN,
-        MARGIN_BOT_IN + FOOTER_H_IN,
-        PAGE_W_IN - MARGIN_L_IN - MARGIN_R_IN,
-        PAGE_H_IN - (MARGIN_TOP_IN + HEADER_H_IN + MARGIN_BOT_IN + FOOTER_H_IN),
-    )
-    return header_rect, content_rect, footer_rect
+# ----------------------------- helpers: layout --------------------------------
+PT = 72.0  # points per inch
+PAGE_W, PAGE_H = letter  # (612 x 792 pt) = (8.5 x 11 in)
 
-# ---------------------------------------------------------------------
-# HEADER / FOOTER
-# ---------------------------------------------------------------------
-def _load_logo(logo_path: Optional[str]) -> Any:
+MARGIN_L = 36  # 0.5 in
+MARGIN_R = 36
+MARGIN_T = 48  # header
+MARGIN_B = 50  # footer
+
+CONTENT_X = MARGIN_L
+CONTENT_Y = MARGIN_B
+CONTENT_W = PAGE_W - MARGIN_L - MARGIN_R
+CONTENT_H = PAGE_H - MARGIN_T - MARGIN_B
+
+HEADER_LOGO_H = 28  # pt
+HEADER_GAP = 6
+
+
+def _fit_into(w: float, h: float, box_w: float, box_h: float) -> Tuple[float, float]:
+    """Scale (w,h) to fit inside (box_w,box_h) keeping aspect, return new (w,h)."""
+    if w <= 0 or h <= 0:
+        return 0, 0
+    s = min(box_w / w, box_h / h)
+    return w * s, h * s
+
+
+def _draw_header_footer(c: canvas.Canvas, title: str, meta: str, logo: Optional[Image.Image], page_no: int, total_estimate: Optional[int]) -> None:
+    # Header title
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(MARGIN_L, PAGE_H - MARGIN_T + HEADER_GAP, title[:140])
+
+    # Logo on the right (if any)
+    if logo is not None:
+        iw, ih = logo.size
+        tw, th = _fit_into(iw, ih, 140, HEADER_LOGO_H)
+        if tw > 0 and th > 0:
+            bio = io.BytesIO()
+            logo.save(bio, format="PNG")
+            bio.seek(0)
+            c.drawImage(ImageReader(bio), PAGE_W - MARGIN_R - tw, PAGE_H - MARGIN_T + HEADER_GAP - (th - HEADER_LOGO_H) / 2, tw, th, mask="auto")
+
+    # Thin line
+    c.setStrokeColor(colors.lightgrey)
+    c.setLineWidth(0.5)
+    c.line(MARGIN_L, PAGE_H - MARGIN_T - 4, PAGE_W - MARGIN_R, PAGE_H - MARGIN_T - 4)
+
+    # Footer meta + page number
+    c.setFont("Helvetica", 8)
+    foot = meta or ""
+    c.setFillColor(colors.grey)
+    c.drawString(MARGIN_L, MARGIN_B - 20, foot[:180])
+    c.setFillColor(colors.black)
+    if total_estimate:
+        c.drawRightString(PAGE_W - MARGIN_R, MARGIN_B - 20, f"Page {page_no}/{total_estimate}")
+    else:
+        c.drawRightString(PAGE_W - MARGIN_R, MARGIN_B - 20, f"Page {page_no}")
+
+
+# ----------------------------- helpers: figures -------------------------------
+def _figure_to_rgb_image(fig, dpi: int = 120) -> Image.Image:
     """
-    Load logo image. If logo_path is None or missing, auto-resolve from ROOT/redpoint_logo.png.
-    Returns ndarray or None.
+    Rasterize a Matplotlib Figure to a PIL RGB image using Agg backend.
+    Works on MPL >= 3.9 (uses buffer_rgba()).
     """
-    # Preferred explicit path
-    if logo_path:
-        p = Path(logo_path)
-        if p.exists():
-            try:
-                return plt.imread(str(p))
-            except Exception:
-                return None
-    # Local fallback
-    p = ROOT / "redpoint_logo.png"
-    if p.exists():
-        try:
-            return plt.imread(str(p))
-        except Exception:
-            return None
-    return None
+    canvas_agg = FigureCanvasAgg(fig)
+    fig.set_dpi(dpi)
+    canvas_agg.draw()
+    w, h = [int(v) for v in fig.get_size_inches() * dpi]
+    buf = np.asarray(canvas_agg.buffer_rgba()).reshape((h, w, 4))
+    # Convert RGBA -> RGB (white background)
+    rgb = np.empty((h, w, 3), dtype=np.uint8)
+    rgb[:, :, 0] = (buf[:, :, 0] * (buf[:, :, 3] / 255.0) + 255 * (1 - buf[:, :, 3] / 255.0)).astype(np.uint8)
+    rgb[:, :, 1] = (buf[:, :, 1] * (buf[:, :, 3] / 255.0) + 255 * (1 - buf[:, :, 3] / 255.0)).astype(np.uint8)
+    rgb[:, :, 2] = (buf[:, :, 2] * (buf[:, :, 3] / 255.0) + 255 * (1 - buf[:, :, 3] / 255.0)).astype(np.uint8)
+    return Image.fromarray(rgb, mode="RGB")
 
-def _wrap_meta_text(text: str, max_chars: int = 55) -> str:
-    import textwrap
-    if not text:
-        return ""
-    return "\n".join(textwrap.wrap(text, width=max_chars, break_long_words=False, replace_whitespace=False))
 
-def _draw_header(fig: plt.Figure, header_ax, title_text: str, meta_text: Optional[str], logo_img) -> None:
-    header_ax.axis("off")
-
-    # Logo (≈1.4" width, preserve AR)
-    if logo_img is not None:
-        logo_w_in = 1.4
-        ratio = logo_img.shape[0] / max(1, logo_img.shape[1])
-        logo_h_in = logo_w_in * ratio
-        parent = header_ax.get_position()
-        hw, hh = parent.width, parent.height
-        ax_logo = fig.add_axes([
-            parent.x0 + 0.00 * hw,
-            parent.y0 + (1 - min(0.9, (logo_h_in / HEADER_H_IN)) - 0.05) * hh,
-            (logo_w_in / (PAGE_W_IN - MARGIN_L_IN - MARGIN_R_IN)) * hw,
-            min(0.9, (logo_h_in / HEADER_H_IN)) * hh
-        ])
-        ax_logo.imshow(logo_img); ax_logo.set_aspect("equal"); ax_logo.axis("off")
-
-    # Title & tiny meta
-    header_ax.text(0.22, 0.70, title_text or "", fontsize=18, fontweight="bold",
-                   color=INK, va="center", ha="left", transform=header_ax.transAxes)
-
-    if meta_text:
-        tiny = _wrap_meta_text(meta_text, max_chars=55)
-        header_ax.text(0.995, 0.78, tiny, fontsize=5, color=MUTED, va="top", ha="right",
-                       linespacing=0.85, transform=header_ax.transAxes)
-
-    # Red underline
-    header_ax.plot([0.00, 1.00], [0.10, 0.10], color=REDPOINT_RED, linewidth=4, clip_on=False)
-
-def _draw_footer(footer_ax, page_num: int, total_pages: int) -> None:
-    footer_ax.axis("off")
-    footer_ax.text(0.5, 0.5, f"Page {page_num}/{total_pages}",
-                   fontsize=9, color=MUTED, va="center", ha="center", transform=footer_ax.transAxes)
-
-# ---------------------------------------------------------------------
-# TEXT HELPERS
-# ---------------------------------------------------------------------
-def _wrap_text(text: str, width: int = 92) -> List[str]:
-    import textwrap
-    return textwrap.wrap(text or "", width=width, replace_whitespace=False, drop_whitespace=False)
-
-def add_paragraph(fig: plt.Figure, content_ax, text: str, width: int = 92, fontsize: int = 10, top_y: float = 0.96) -> float:
-    y = top_y
-    for line in _wrap_text(text, width=width):
-        content_ax.text(0.02, y, line, fontsize=fontsize, va="top", color=INK, transform=content_ax.transAxes)
-        y -= 0.035
-    return y
-
-def add_bullets(fig: plt.Figure, content_ax, items: Sequence[str], width: int = 92, fontsize: int = 10, top_y: float = 0.96) -> float:
-    y = top_y
-    for it in (items or []):
-        lines = _wrap_text(it, width=width)
-        if not lines:
+# ------------------------------- draw sections --------------------------------
+def _draw_summary(c: canvas.Canvas, section: Dict[str, Any], y: float) -> float:
+    title = str(section.get("title", "Summary") or "Summary")
+    items: Sequence[str] = section.get("bullets", []) or []
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(CONTENT_X, y, title[:120])
+    y -= 14
+    c.setFont("Helvetica", 10)
+    for s in items:
+        text = str(s or "")
+        if not text:
             continue
-        content_ax.text(0.02, y, f"• {lines[0]}", fontsize=fontsize, va="top", color=INK, transform=content_ax.transAxes)
-        for ln in lines[1:]:
-            y -= 0.035
-            content_ax.text(0.04, y, ln, fontsize=fontsize, va="top", color=INK, transform=content_ax.transAxes)
-        y -= 0.050
+        lines = text.splitlines() or [text]
+        for ln in lines:
+            if y < CONTENT_Y + 40:
+                c.showPage()
+                y = PAGE_H - MARGIN_T - 10
+            c.drawString(CONTENT_X + 12, y, f"• {ln[:160]}")
+            y -= 13
     return y
 
-# ---------------------------------------------------------------------
-# TABLE HELPERS (wrapping + minutes formatter)
-# ---------------------------------------------------------------------
-def _as_table_data(
-    data: Union[pd.DataFrame, List[Dict[str, Any]], List[List[Any]]],
-    headers: Optional[List[str]] = None
-) -> Tuple[List[str], List[List[str]]]:
-    if isinstance(data, pd.DataFrame):
-        cols = list(data.columns if headers is None else headers)
-        rows = data[cols].astype(str).values.tolist()
-        return cols, rows
-    if isinstance(data, list) and data and isinstance(data[0], dict):
-        cols = list(data[0].keys()) if headers is None else headers
-        rows = [[str(r.get(c, "")) for c in cols] for r in data]
-        return cols, rows
-    rows = [[str(x) for x in r] for r in (data or [])]
-    if headers is None and rows:
-        headers = [f"col_{i}" for i in range(len(rows[0]))]
-    return headers or [], rows
 
-# Minutes formatter: ensure ≤ 6 chars (e.g., '123.4', '999999', '12.34')
-def _fmt_minutes_str(val: Any) -> str:
-    try:
-        f = float(str(val))
-        if f < 0:
-            f = 0.0
-        s = f"{f:.2f}"
-        if len(s) > 6:
-            s = f"{f:.0f}"
-        if len(s) > 6:
-            # final hard cap; avoid scientific notation
-            s = s[:6]
-            if s.endswith("."):
-                s = s[:-1]
-        return s
-    except Exception:
-        s = str(val)
-        return s[:6] if len(s) > 6 else s
+def _draw_table(c: canvas.Canvas, section: Dict[str, Any], y: float) -> float:
+    title = str(section.get("title", "Table") or "Table")
+    headers: Sequence[str] = [str(h) for h in (section.get("headers") or [])]
+    rows: Sequence[Dict[str, Any]] = section.get("data") or []
+    rpp = int(section.get("rows_per_page", 24) or 24)
 
-# Apply minutes formatter to any minutes-like column
-def _format_minutes_columns(cols: List[str], rows: List[List[str]]) -> List[List[str]]:
-    minutes_idx = [i for i,c in enumerate(cols) if "duration_min" in c.lower() or c.lower().endswith("minutes")]
-    if not minutes_idx:
-        return rows
-    out = []
+    if not headers or not rows:
+        return y
+
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(CONTENT_X, y, title[:120])
+    y -= 14
+
+    # Calculate column widths
+    col_w = CONTENT_W / max(1, len(headers))
+    row_h = 12
+
+    def draw_header(_y: float) -> float:
+        c.setFont("Helvetica-Bold", 9)
+        c.setFillColor(colors.white)
+        c.setStrokeColor(colors.lightgrey)
+        c.rect(CONTENT_X, _y - row_h, CONTENT_W, row_h, stroke=1, fill=1)
+        c.setFillColor(colors.black)
+        for i, h in enumerate(headers):
+            c.drawString(CONTENT_X + i * col_w + 2, _y - row_h + 3, str(h)[:32])
+        return _y - row_h - 2
+
+    def draw_row(data_row: Dict[str, Any], _y: float) -> float:
+        c.setFont("Helvetica", 8)
+        c.setStrokeColor(colors.lightgrey)
+        c.rect(CONTENT_X, _y - row_h, CONTENT_W, row_h, stroke=1, fill=0)
+        for i, h in enumerate(headers):
+            val = str(data_row.get(h, ""))
+            c.drawString(CONTENT_X + i * col_w + 2, _y - row_h + 3, val[:40])
+        return _y - row_h - 2
+
+    count = 0
+    header_y = y
+    y = draw_header(y)
     for r in rows:
-        r2 = list(r)
-        for i in minutes_idx:
-            if i < len(r2):
-                r2[i] = _fmt_minutes_str(r2[i])
-        out.append(r2)
-    return out
+        if count and (count % rpp == 0 or y < CONTENT_Y + 40):
+            c.showPage()
+            _draw_header_footer(c, "", "", None, 0, None)  # just re-draw line boundaries
+            y = PAGE_H - MARGIN_T - 10
+            y = draw_header(y)
+        y = draw_row(r, y)
+        count += 1
+    return y
 
-# ---- Table cell wrapping to prevent overflow ----
-CHAR_PER_IN = 10.0        # char-per-inch estimate at ~8–10pt
-MAX_CELL_LINES = 3
-COL_GUTTER_FRAC = 0.98
 
-def _wrap_table_cells(cols: List[str], rows: List[List[str]], content_w_in: float) -> Tuple[List[float], List[List[str]]]:
-    import textwrap
-    n = max(1, len(cols))
-    total_w_in = content_w_in * COL_GUTTER_FRAC
-    col_w_in = [total_w_in / n] * n
-    col_widths_frac = [w / content_w_in for w in col_w_in]
+def _draw_charts(c: canvas.Canvas, section: Dict[str, Any], y: float, dpi: int) -> float:
+    title = str(section.get("title", "Figures") or "Figures")
+    figs: List[Any] = [f for f in (section.get("figures") or []) if hasattr(f, "savefig")]
+    if not figs:
+        return y
 
-    wrapped = []
-    for r in rows:
-        new_r = []
-        for i, cell in enumerate(r[:n] + ([""] * max(0, n - len(r)))):
-            cell = "" if cell is None else str(cell)
-            max_chars = max(6, int(col_w_in[i] * CHAR_PER_IN))
-            wrapped_text = textwrap.fill(cell, width=max_chars, break_long_words=False, replace_whitespace=False)
-            lines = wrapped_text.splitlines()
-            if len(lines) > MAX_CELL_LINES:
-                lines = lines[:MAX_CELL_LINES]
-                if not lines[-1].endswith("…"):
-                    if len(lines[-1]) >= 1:
-                        lines[-1] = (lines[-1][:-1] + "…") if len(lines[-1]) > 1 else "…"
-            new_r.append("\n".join(lines))
-        wrapped.append(new_r)
-    return col_widths_frac, wrapped
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(CONTENT_X, y, title[:120])
+    y -= 12
 
-def add_table_pages(
-    pdf: PdfPages,
-    title: str,
-    data: Union[pd.DataFrame, List[Dict[str, Any]], List[List[Any]]],
-    headers: Optional[List[str]] = None,
-    logo_img=None,
-    meta_text: Optional[str] = None,
-    rows_per_page: int = 24,
-    start_page_number: int = 1,
-    total_pages_hint: Optional[int] = None,
-    dpi: Optional[int] = None
-) -> int:
-    cols, rows = _as_table_data(data, headers=headers)
-    # Format minutes before wrapping
-    rows = _format_minutes_columns(cols, rows)
+    box_w, box_h = CONTENT_W, (CONTENT_H - 24)  # generous space per page
 
-    pages = max(1, (len(rows) + rows_per_page - 1) // rows_per_page)
-    content_w_in = PAGE_W_IN - MARGIN_L_IN - MARGIN_R_IN
-    col_widths_frac, wrapped_rows = _wrap_table_cells(cols, rows, content_w_in)
+    for i, fig in enumerate(figs, 1):
+        img = _figure_to_rgb_image(fig, dpi=dpi)
+        iw, ih = img.size
+        tw, th = _fit_into(iw, ih, box_w, box_h)
 
-    for p in range(pages):
-        fig = plt.figure(figsize=PAGE_SIZE, dpi=(dpi or DEFAULT_DPI))
-        header_rect, content_rect, footer_rect = _regions()
-        header_ax = fig.add_axes(header_rect)
-        content_ax = fig.add_axes(content_rect)
-        footer_ax = fig.add_axes(footer_rect)
+        if y - th < CONTENT_Y + 24:
+            c.showPage()
+            y = PAGE_H - MARGIN_T - 10
 
-        _draw_header(fig, header_ax, title, meta_text, logo_img)
-        _draw_footer(footer_ax, start_page_number + p, total_pages_hint or (start_page_number + pages - 1))
+        bio = io.BytesIO()
+        img.save(bio, format="PNG")
+        bio.seek(0)
+        c.drawImage(ImageReader(bio), CONTENT_X + (box_w - tw) / 2, y - th, tw, th, mask="auto")
+        y -= (th + 12)
 
-        content_ax.axis("off")
-        chunk = wrapped_rows[p * rows_per_page:(p + 1) * rows_per_page]
-        tbl = content_ax.table(
-            cellText=chunk,
-            colLabels=cols,
-            colWidths=col_widths_frac,
-            loc="upper left",
-            cellLoc="left"
-        )
-        tbl.auto_set_font_size(False)
-        tbl.set_fontsize(7)      # ~10% smaller
-        tbl.scale(1.00, 1.10)    # slightly tighter rows
+        # After drawing, keep the figure alive (caller may close later)
+    return y
 
-        pdf.savefig(fig)  # exact 8.1 × 11
-        plt.close(fig)
 
-    return pages
-
-# ---------------------------------------------------------------------
-# CHART COMPOSITION
-# ---------------------------------------------------------------------
-def _draw_chart_page(
-    pdf: PdfPages,
-    title: str,
-    fig_src: plt.Figure,
-    logo_img,
-    meta_text: Optional[str],
-    page_number: int,
-    total_pages: int,
-    dpi: Optional[int]
-) -> None:
-    fig_src.set_dpi(dpi or DEFAULT_DPI)
-    canvas = FigureCanvas(fig_src); canvas.draw()
-    w, h = fig_src.canvas.get_width_height()
-    buf = np.frombuffer(canvas.tostring_rgb(), dtype=np.uint8).reshape((h, w, 3))
-
-    fig = plt.figure(figsize=PAGE_SIZE, dpi=(dpi or DEFAULT_DPI))
-    header_rect, content_rect, footer_rect = _regions()
-    header_ax = fig.add_axes(header_rect)
-    content_ax = fig.add_axes(content_rect)
-    footer_ax = fig.add_axes(footer_rect)
-
-    _draw_header(fig, header_ax, title, meta_text, logo_img)
-    _draw_footer(footer_ax, page_number, total_pages)
-
-    content_ax.imshow(buf); content_ax.set_aspect("auto"); content_ax.axis("off")
-    pdf.savefig(fig); plt.close(fig); plt.close(fig_src)
-
-# ---------------------------------------------------------------------
-# CORE BUILDER
-# ---------------------------------------------------------------------
-def build_pdf(
-    report: Dict[str, Any],
-    output_path: str,
-    logo_path: Optional[str] = None,
-    dpi: Optional[int] = DEFAULT_DPI
-) -> str:
+# ------------------------------- build / safe ---------------------------------
+def build_pdf(report: Dict[str, Any], output_path: str, logo_path: Optional[str] = None, dpi: int = 120) -> None:
     """
-    Build the full PDF. Paths must be local (no sandbox). If logo_path is None,
-    we attempt ROOT/redpoint_logo.png automatically.
+    Render the given report dict as a PDF to output_path. Atomic write.
     """
-    out_dir = Path(output_path).resolve().parent
-    os.makedirs(str(out_dir), exist_ok=True)
-    logo_img = _load_logo(logo_path)
+    out = Path(output_path).resolve()
+    out.parent.mkdir(parents=True, exist_ok=True)
 
-    # Estimate pages
-    total_estimate = 0
-    for sec in report.get("sections", []):
-        t = sec.get("type")
-        if t in ("summary", "narrative", "recommendations", "appendix"):
-            total_estimate += 1
-        elif t == "table":
-            data = sec.get("data", [])
-            cols, rows = _as_table_data(data, headers=sec.get("headers"))
-            rpp = int(sec.get("rows_per_page") or 24)
-            total_estimate += max(1, (len(rows) + rpp - 1) // rpp)
-        elif t == "chart":
-            total_estimate += 1
-        elif t == "charts":
-            figs = sec.get("figures") or []
-            total_estimate += max(1, len(figs))
-        else:
-            total_estimate += 1
+    # Resolve logo
+    logo_img: Optional[Image.Image] = None
+    logo_candidates: List[Path] = []
+    if logo_path:
+        logo_candidates.append(Path(logo_path))
+    logo_candidates += [ROOT / "redpoint_logo.png", Path.cwd() / "redpoint_logo.png"]
+    for cand in logo_candidates:
+        try:
+            if cand.exists():
+                logo_img = Image.open(cand).convert("RGBA")
+                break
+        except Exception:
+            continue
+
+    title = str(report.get("title", "InfoZone Report") or "InfoZone Report")
+    meta  = str(report.get("meta", "") or "")
+    sections: List[Dict[str, Any]] = report.get("sections") or []
+
+    # Atomic write: temp then replace
+    tmp_path = out.with_suffix(out.suffix + ".tmp")
+    c = canvas.Canvas(str(tmp_path), pagesize=letter)
 
     page_no = 1
-    title = report.get("title") or "Report"
-    meta_text = report.get("meta") or ""
+    total_estimate = None  # could be len(sections)+N; keep None to avoid lying
 
-    with PdfPages(output_path) as pdf:
-        for sec in report.get("sections", []):
-            stype = sec.get("type")
-            stitle = sec.get("title") or title
+    # First page header
+    _draw_header_footer(c, title, meta, logo_img, page_no, total_estimate)
+    y = PAGE_H - MARGIN_T - 10
 
-            if stype == "summary":
-                fig = plt.figure(figsize=PAGE_SIZE, dpi=(dpi or DEFAULT_DPI))
-                header_rect, content_rect, footer_rect = _regions()
-                header_ax = fig.add_axes(header_rect)
-                content_ax = fig.add_axes(content_rect)
-                footer_ax = fig.add_axes(footer_rect)
-                _draw_header(fig, header_ax, stitle, meta_text, logo_img)
-                _draw_footer(footer_ax, page_no, total_estimate)
-                content_ax.axis("off")
-                add_bullets(fig, content_ax, sec.get("bullets") or [], width=92, fontsize=10, top_y=0.96)
-                pdf.savefig(fig); plt.close(fig); page_no += 1
+    for sec in sections:
+        st = (sec.get("type") or "").lower()
+        if st == "summary":
+            y = _draw_summary(c, sec, y)
+        elif st == "table":
+            y = _draw_table(c, sec, y)
+        elif st == "charts":
+            y = _draw_charts(c, sec, y, dpi=dpi)
+        else:
+            # generic text section
+            t = str(sec.get("title", "Notes") or "Notes")
+            body = str(sec.get("text", "") or "")
+            c.setFont("Helvetica-Bold", 11); c.drawString(CONTENT_X, y, t[:120]); y -= 14
+            c.setFont("Helvetica", 10)
+            for ln in (body.splitlines() or []):
+                if y < CONTENT_Y + 40:
+                    c.showPage(); page_no += 1
+                    _draw_header_footer(c, title, meta, logo_img, page_no, total_estimate)
+                    y = PAGE_H - MARGIN_T - 10
+                c.drawString(CONTENT_X, y, ln[:140]); y -= 12
 
-            elif stype == "narrative":
-                fig = plt.figure(figsize=PAGE_SIZE, dpi=(dpi or DEFAULT_DPI))
-                header_rect, content_rect, footer_rect = _regions()
-                header_ax = fig.add_axes(header_rect)
-                content_ax = fig.add_axes(content_rect)
-                footer_ax = fig.add_axes(footer_rect)
-                _draw_header(fig, header_ax, stitle, meta_text, logo_img)
-                _draw_footer(footer_ax, page_no, total_estimate)
-                content_ax.axis("off")
-                y = 0.96
-                for para in (sec.get("paragraphs") or []):
-                    y = add_paragraph(fig, content_ax, para, width=92, fontsize=10, top_y=y) - 0.02
-                pdf.savefig(fig); plt.close(fig); page_no += 1
+        # New page if space is tight between sections
+        if y < CONTENT_Y + 80:
+            c.showPage(); page_no += 1
+            _draw_header_footer(c, title, meta, logo_img, page_no, total_estimate)
+            y = PAGE_H - MARGIN_T - 10
 
-            elif stype == "recommendations":
-                fig = plt.figure(figsize=PAGE_SIZE, dpi=(dpi or DEFAULT_DPI))
-                header_rect, content_rect, footer_rect = _regions()
-                header_ax = fig.add_axes(header_rect)
-                content_ax = fig.add_axes(content_rect)
-                footer_ax = fig.add_axes(footer_rect)
-                _draw_header(fig, header_ax, stitle, meta_text, logo_img)
-                _draw_footer(footer_ax, page_no, total_estimate)
-                content_ax.axis("off")
-                add_bullets(fig, content_ax, sec.get("bullets") or [], width=92, fontsize=10, top_y=0.96)
-                pdf.savefig(fig); plt.close(fig); page_no += 1
+    # Ensure at least one page is saved
+    c.showPage()
+    c.save()
 
-            elif stype == "appendix":
-                fig = plt.figure(figsize=PAGE_SIZE, dpi=(dpi or DEFAULT_DPI))
-                header_rect, content_rect, footer_rect = _regions()
-                header_ax = fig.add_axes(header_rect)
-                content_ax = fig.add_axes(content_rect)
-                footer_ax = fig.add_axes(footer_rect)
-                _draw_header(fig, header_ax, stitle, meta_text, logo_img)
-                _draw_footer(footer_ax, page_no, total_estimate)
-                content_ax.axis("off")
-                text = sec.get("text") or ""
-                mono = bool(sec.get("mono"))
-                if mono:
-                    content_ax.text(0.02, 0.96, text, family="monospace", fontsize=9, va="top", color=INK, transform=content_ax.transAxes)
-                else:
-                    _ = add_paragraph(fig, content_ax, text, width=92, fontsize=10, top_y=0.96)
-                pdf.savefig(fig); plt.close(fig); page_no += 1
-
-            elif stype == "table":
-                pages = add_table_pages(
-                    pdf, stitle, sec.get("data", []),
-                    headers=sec.get("headers"), logo_img=logo_img, meta_text=meta_text,
-                    rows_per_page=int(sec.get("rows_per_page") or 24),
-                    start_page_number=page_no, total_pages_hint=total_estimate, dpi=dpi
-                )
-                page_no += pages
-
-            elif stype == "chart":
-                fig_src = sec.get("figure")
-                if fig_src is None:
-                    fig_src = plt.figure(); ax = fig_src.add_subplot(111)
-                    ax.axis("off"); ax.text(0.5,0.5,"No chart provided", ha="center", va="center")
-                _draw_chart_page(pdf, stitle, fig_src, logo_img, meta_text, page_no, total_estimate, dpi=dpi)
-                page_no += 1
-
-            elif stype == "charts":
-                figs = sec.get("figures") or []
-                if not figs:
-                    fig_src = plt.figure(); ax = fig_src.add_subplot(111)
-                    ax.axis("off"); ax.text(0.5,0.5,"No charts provided", ha="center", va="center")
-                    _draw_chart_page(pdf, stitle, fig_src, logo_img, meta_text, page_no, total_estimate, dpi=dpi)
-                    page_no += 1
-                else:
-                    for fig_src in figs:
-                        _draw_chart_page(pdf, stitle, fig_src, logo_img, meta_text, page_no, total_estimate, dpi=dpi)
-                        page_no += 1
-
-            else:
-                fig = plt.figure(figsize=PAGE_SIZE, dpi=(dpi or DEFAULT_DPI))
-                header_rect, content_rect, footer_rect = _regions()
-                header_ax = fig.add_axes(header_rect)
-                content_ax = fig.add_axes(content_rect)
-                footer_ax = fig.add_axes(footer_rect)
-                _draw_header(fig, header_ax, stitle, meta_text, logo_img)
-                _draw_footer(footer_ax, page_no, total_estimate)
-                content_ax.axis("off")
-                _ = add_paragraph(fig, content_ax, sec.get("text") or "", width=92, fontsize=10, top_y=0.96)
-                pdf.savefig(fig); plt.close(fig); page_no += 1
-
-    return output_path
-
-# ---------------------------------------------------------------------
-# ATOMIC WRITE WRAPPER + FALLBACK
-# ---------------------------------------------------------------------
-def safe_build_pdf(report: Dict[str, Any],
-                   output_path: str,
-                   logo_path: Optional[str] = None,
-                   dpi: Optional[int] = DEFAULT_DPI,
-                   budgets: Optional[Dict[str, Any]] = None) -> str:
-    """
-    Writes to temp first; enforces budgets; retries once in 'lite' mode on failure.
-    All paths are local; report_limits is imported locally (no sandbox path).
-    """
-    from report_limits import apply_budgets, make_lite
-
-    tmp = output_path + ".tmp"  # keep as string concat; output_path is str
-
-    # Enforce budgets up front
-    capped = apply_budgets(report, budgets)
-
-    # First attempt
+    # Atomic replace
     try:
-        build_pdf(capped, output_path=tmp, logo_path=logo_path, dpi=dpi)
-        if not (os.path.exists(tmp) and os.path.getsize(tmp) > 0):
-            raise RuntimeError("Temp PDF is missing or empty after write.")
-        os.replace(tmp, output_path)
-        return output_path
-    except Exception:
-        # Fallback: lite mode
+        shutil.move(str(tmp_path), str(out))
+    finally:
         try:
-            lite = make_lite(capped)
-            low_dpi = min(96, int(dpi or DEFAULT_DPI))
-            build_pdf(lite, output_path=tmp, logo_path=logo_path, dpi=low_dpi)
-            if not (os.path.exists(tmp) and os.path.getsize(tmp) > 0):
-                raise RuntimeError("Temp PDF is missing or empty after lite write.")
-            os.replace(tmp, output_path)
-            return output_path
-        finally:
-            if os.path.exists(tmp):
-                try:
-                    os.remove(tmp)
-                except Exception:
-                    pass
+            if tmp_path.exists():
+                tmp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+def safe_build_pdf(report: Dict[str, Any], output_path: str, logo_path: Optional[str] = None, dpi: int = 120) -> None:
+    """
+    Thin wrapper kept for API compatibility. The generator wraps this in its own
+    try/except and will attempt a lite report if this raises.
+    """
+    build_pdf(report, output_path=output_path, logo_path=logo_path, dpi=dpi)

@@ -1,0 +1,231 @@
+guidelines.txt (MANDATORY — read & apply at the very start of the Analysis block; non-compliance = failure)
+
+===============================================================================
+LOCAL FILESYSTEM POLICY (NEVER use “/mnt/data” or “sandbox:”)
+===============================================================================
+- All files are local. Resolve project root (ROOT) from INFOZONE_ROOT or from the script’s parent directories.
+- OUT_DIR policy: prefer INFOZONE_OUT_DIR (set by the web server per job), else use the directory of the FIRST CSV.
+- Use only paths under ROOT and OUT_DIR.
+- Always read text with UTF-8 and errors="ignore" to avoid Windows cp1252 issues.
+
+===============================================================================
+DATAFRAME SAFETY (apply immediately after constructing any DataFrame)
+===============================================================================
+- Duplicate-name guard:
+    if df.columns.duplicated().any():
+        df = df.loc[:, ~df.columns.duplicated()]
+- No collisions: never rename a column to a name that already exists.
+
+===============================================================================
+EMERGENCY FLOOR CROP — GLOBAL FILTER (TOP-5 RULE)
+===============================================================================
+- Units: WORLD millimeters.
+- For EVERY ingested file, BEFORE any analytics/zones/overlays/plots/tables, enforce:
+    keep rows with x ≥ 12000 AND y ≥ 15000   # drop where x<12000 OR y<15000
+- Propagate the same mask to overlays/trails and to inputs passed into zones_process.
+- If this removes all rows, still build a minimal PDF with a summary bullet:
+  "All positions filtered by emergency crop (x≥12000 & y≥15000)."
+
+===============================================================================
+TABLES DEFAULT OFF
+===============================================================================
+- Omit "table" sections unless the user explicitly asks for a table/tabular/rows/CSV/spreadsheet/evidence.
+- Minimal/Lite PDFs must also omit tables unless explicitly requested.
+- When tables are requested, never pass a pandas DataFrame—convert to list-of-dicts.
+
+===============================================================================
+IGNORE TRAILER
+===============================================================================
+- UNLESS EXPLICITLY REQUESTED, IGNORE POSITIONS WITHIN 'TRAILER' ZONES WHENEVER PROCESSING ZONES.
+
+===============================================================================
+PDF BUILD CONTRACT (MANDATORY)
+===============================================================================
+- Build a valid report dict:
+    report = {"title": str, "meta": str, "sections": list}
+  Required sections:
+    1) "summary": {"type":"summary","title":..., "bullets":[...]}
+    2) Optional "table": ONLY if requested (see TABLES DEFAULT OFF)
+    3) Optional "charts": {"type":"charts","title":..., "figures":[matplotlib.figure.Figure, ...]}
+
+- Figures passed to the PDF builder MUST be live Matplotlib Figure objects.
+  * Filter None:  figs = [f for f in figs if getattr(f, "savefig", None)]
+  * DO NOT pass file paths or Axes.
+  * Save PNGs FIRST (dpi=120), but DO NOT close figures until AFTER PDF is built.
+
+- ALWAYS create the output directory:
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+- PDF builder call with REQUIRED fallback (no silent exit):
+    try:
+        safe_build_pdf(report, str(pdf_path), logo_path=str(ROOT / "redpoint_logo.png"))
+    except Exception as e:
+        import traceback
+        print("Error Report:")
+        print(f"PDF build failed: {e.__class__.__name__}: {e}")
+        traceback.print_exc()
+        try:
+            report = make_lite(report)  # reduce figures/rows via report_limits.py
+            safe_build_pdf(report, str(pdf_path), logo_path=str(ROOT / "redpoint_logo.png"))
+        except Exception as e2:
+            print("Error Report:")
+            print(f"Lite PDF failed: {e2.__class__.__name__}: {e2}")
+            traceback.print_exc()
+            raise SystemExit(1)
+
+- Only AFTER a successful PDF build, print links in EXACT format:
+    print(f"[Download the PDF](file:///{pdf_path.resolve().as_posix()})")
+    for i, p in enumerate(png_paths, 1):
+        print(f"[Download Plot {i}](file:///{p.resolve().as_posix()})")
+
+===============================================================================
+TIME & PANDAS CONSISTENCY
+===============================================================================
+- Canonical timestamp column is ts_utc (UTC, ISO 'Z'). Do not rename ts_utc to ts.
+- Create ts_utc from ts_iso (else ts) with utc=True and errors="coerce".
+- Use lowercase 'h' with pandas `.dt.floor("h")` (never "H").
+- Timezone safety: NEVER make tz-aware datetimes naive via .astype(...); use
+  `.dt.tz_convert('UTC').dt.tz_localize(None)` or `.dt.tz_localize(None)` before plotting.
+
+===============================================================================
+ERROR REPORTING (CLARITY)
+===============================================================================
+- If schema or I/O checks fail, print an Error Report with the exception class, message AND a short traceback.
+- Never print a generic "Failed to write PDF" without the exception details.
+
+===============================================================================
+SECTION SAFETY (AVOID EMPTY REPORTS)
+===============================================================================
+- If no data is available (e.g., fully filtered by emergency crop), still produce a minimal "summary" section explaining the condition and build the PDF.
+- For "charts" sections: if there are 0 valid figures after filtering, omit the section entirely (do not pass an empty list).
+
+===============================================================================
+MATPLOTLIB ≥3.9 COMPATIBILITY
+===============================================================================
+- If FigureCanvasAgg lacks tostring_rgb, define it via buffer_rgba() → RGB bytes BEFORE calling safe_build_pdf:
+    from matplotlib.backends.backend_agg import FigureCanvasAgg as _FCA; import numpy as _np
+    _FCA.tostring_rgb = getattr(_FCA,"tostring_rgb", lambda self: _np.asarray(self.buffer_rgba())[..., :3].tobytes())
+- Prefer `matplotlib.colormaps.get_cmap("tab10")` over `plt.cm.get_cmap("tab10")`.
+
+===============================================================================
+TIMESTAMP CANON (single source of truth)
+===============================================================================
+- Create one UTC analysis column from ts_iso (else ts):
+    ts_src = df["ts_iso"] if "ts_iso" in df.columns else df.get("ts", "")
+    df["ts_utc"] = pandas.to_datetime(ts_src, utc=True, errors="coerce")
+- Use ts_utc for ALL analytics (filters, zones, windows). Never rename it.
+
+===============================================================================
+REQUIRED COLUMNS (early schema validation)
+===============================================================================
+- After first CSV ingestion, verify:
+  • Identity: at least one of `trackable` OR `trackable_uid`
+  • Trade column: `trade` (string; may be empty)
+  • Positions: `x` AND `y`
+- On failure:
+    Error Report:
+    Missing required columns for analysis.
+    Columns detected: <comma-separated list>
+  (then exit)
+
+===============================================================================
+ZONES (ONLY IF ASKED)
+===============================================================================
+- For zones_process helpers (compute_zone_intervals / dwell_in_polygon):
+  Required args: id_col="trackable_uid", ts_col="ts_utc", x_col="x", y_col="y".
+- Inputs must be AFTER the emergency floor crop, with non-NA ts_utc/x/y.
+- If no valid/active polygons, skip zones gracefully (no crash).
+- No downsampling inside zones processing.
+- UNLESS EXPLICITLY REQUESTED, IGNORE 'TRAILER' zone positions.
+
+===============================================================================
+AD-HOC POLYGON INPUTS (prevent ambiguous truth/shape issues)
+===============================================================================
+- Always pass a Python list[tuple(float,float)] (not numpy arrays):
+    def _to_xy(p):
+        if isinstance(p, dict): return (float(p["x"]), float(p["y"]))
+        x, y = p; return (float(x), float(y))
+    poly = [_to_xy(p) for p in user_points]
+- Sanitize before zones: drop consecutive duplicates and the closing duplicate (last==first); require ≥3 unique points.
+  If invalid → print Error Report and do not call zones helpers.
+
+===============================================================================
+FLOORPLAN SCALING (WORLD-mm; display origin bottom-left)
+===============================================================================
+- From floorplans.json: s=image_scale*100 mm/px; center (x_c,y_c); raster W×H px.
+- World rect: x_min=(x_c−W/2)*s, x_max=(x_c+W/2)*s, y_min=(y_c−H/2)*s, y_max=(y_c+H/2)*s.
+- Display shift: dx0=−x_min, dy0=−y_min.
+  Plot raster at [0, x_max−x_min] × [0, y_max−y_min] with origin='upper';
+  plot points x’=x+dx0, y’=y+dy0. Equal aspect; ~10% margin. Do not mutate coordinates.
+
+===============================================================================
+FIGURES → PNG → PDF (exact sequence; LOCAL paths)
+===============================================================================
+- Create figures → save PNGs → pass live Figure objects to the report.
+- Save PNGs to:
+    out_dir / f"info_zone_report_{report_date}_plot{i:02d}.png"
+  with dpi=120. Do not use bbox_inches='tight'.
+- Do not close or clear figures before safe_build_pdf(...).
+- Build the PDF with STRING paths:
+    safe_build_pdf(report, str(pdf_path), logo_path=str(LOGO))
+
+===============================================================================
+LINK PRINTING (strict local format; NO sandbox)
+===============================================================================
+- On success, print only:
+  [Download the PDF](file:///ABS/PATH/TO/PDF)
+  [Download Plot 1](file:///ABS/PATH/TO/PNG1)
+  [Download Plot 2](file:///ABS/PATH/TO/PNG2)
+  ...
+- If no figures: print only the PDF link.
+- On failure: print only:
+  Error Report:
+  <1–2 line reason>
+  (If schema issues, add ONE extra line: “Columns detected: …”)
+
+===============================================================================
+BUDGETS (respect report_limits.py)
+===============================================================================
+- Keep figures ≤ MAX_FIGURES; keep tables/text within limits. Do not add charts to “fill space”.
+
+===============================================================================
+RUNNER PATH & MAPPING REQUIREMENTS (LOCAL-ONLY, no ambiguity)
+===============================================================================
+- Always resolve ROOT (prefer INFOZONE_ROOT; else this file’s parent). Never rely on /mnt/data.
+- When calling the extractor you MUST pass the local MAC map explicitly:
+    raw = extract_tracks(str(csv_path), mac_map_path=str(ROOT / "trackable_objects.json"))
+  If raw["audit"]["mac_map_loaded"] is False, print an Error Report and exit (blank trades/names are unacceptable).
+- When selecting charts, pass explicit paths for floorplan and zones:
+    floorplans_path      = str(ROOT / "floorplans.json")
+    floorplan_image_path = str(ROOT / "floorplan.jpeg")   # or .png
+    zones_path           = str(ROOT / "zones.json")
+
+===============================================================================
+LARGE-DATA MODE (200 MB / 5-day) — memory-safe, single-pass rules
+===============================================================================
+- Per-file processing (no giant concatenations):
+  • call extract_tracks(file)
+  • build a DataFrame for that file only
+  • duplicate-name guard → ts_utc → EMERGENCY FLOOR CROP
+- Zones requested: run compute_zone_intervals(...) on filtered rows; if intervals are many, append to a local JSONL under out_dir.
+- No zones: compute only needed per-file aggregates; merge into small Python dicts.
+- After each file: del large DataFrames and plt.close('all') (only after PNG export).
+- Column pruning: restrict to needed columns.
+- Casting: cast x,y to numeric only when needed; keep strings otherwise.
+
+===============================================================================
+CODE SANITY (binding)
+===============================================================================
+- The generated script must compile:
+    compile(<full_script_str>, "<generated>", "exec")
+- All “columns detected” prints MUST use:
+    print(f"Columns detected: {','.join(df.columns.astype(str))}")
+- Prefer f-strings; avoid string concatenation for logs.
+- No placeholder/intentional errors.
+
+===============================================================================
+COMPLIANCE (critical)
+===============================================================================
+- Reading and applying this guidelines.txt at the start of Analysis is mandatory.
+- Non-compliance (renaming ts_utc to ts; numpy arrays as polygons; DataFrames in tables; duplicate column names;
+  skipping the emergency crop; using /mnt/data or sandbox: links) is a failure condition.

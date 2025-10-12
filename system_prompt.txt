@@ -149,6 +149,17 @@ LINKS (SUCCESS; WINDOWS/LINUX SAFE)
 LEGEND & CATEGORY LIMITS
 - Only call `legend()` if there are labeled artists and ≤12 categories.
 
+FLOORPLAN SELECTION (MANDATORY)
+- When floorplans.json contains multiple entries, choose in this order:
+  1) Any entry with "selected": 1. If multiple are selected, prefer the one whose
+     display_name/filename matches the raster filename on disk.
+  2) Else, if no entry is selected, choose the one whose display_name/filename matches
+     the raster filename on disk.
+  3) Else, fall back to the first entry.
+- Use the chosen entry’s width/height/image_offset_x/image_offset_y and image_scale
+  to compute the world-mm extent for the raster.
+
+
 MINIMAL / LITE MODE
 - If no data or heavy failure: produce a concise "summary" section only (no tables unless explicitly requested) and build the PDF with `make_lite(report)`.
 

@@ -1,4 +1,4 @@
-rppgc.duckdns.org {
+rppgv.duckdns.org {
     encode zstd gzip
     reverse_proxy api:8000
 }

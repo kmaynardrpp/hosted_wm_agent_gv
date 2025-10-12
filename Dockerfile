@@ -3,8 +3,8 @@
 # --------- Stage 1: build the frontend ---------
 FROM node:20-alpine AS web
 WORKDIR /web
-COPY web/infozone-web ./infozone-web
-WORKDIR /web/infozone-web
+COPY web/infozone-web-gv ./infozone-web-gv
+WORKDIR /web/infozone-web-gv
 RUN npm ci && npm run build
 
 # --------- Stage 2: Python app ---------
@@ -24,7 +24,7 @@ RUN pip install --no-cache-dir -r requirements.txt fastapi uvicorn python-multip
 COPY . ./
 
 # copy the built frontend from stage 1 into the path server.py expects
-COPY --from=web /web/infozone-web/dist /app/web/infozone-web/dist
+COPY --from=web /web/infozone-web-gv/dist /app/web/infozone-web-gv/dist
 
 # ensure runtime dirs exist
 RUN mkdir -p /app/uploads /app/.runs

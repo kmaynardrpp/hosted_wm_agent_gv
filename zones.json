@@ -3,16 +3,16 @@
         {
             "active": true,
             "apply_to": "ALL",
-            "crc16": 61449,
-            "created_at": "2025-09-06T15:26:00.000Z",
+            "crc16": 34442,
+            "created_at": "2025-09-15T03:40:58.000Z",
             "custom_info": "",
             "default_allowed": false,
             "depth": null,
             "dynamic": false,
-            "location_uid": "5u7UF10yTa_hiSnxEKOOvQ",
-            "name": "Zone 2 - 100 GR Sales Floor",
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 6 - Restroom",
             "priority": 0,
-            "project_uid": "EzU4y8EaQJuD4Y9ZartpqA",
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
             "removed_at": "9999-12-31T23:59:59.000Z",
             "schedule": {
                 "start_time": "00 00 * * *",
@@ -20,12 +20,12 @@
             },
             "shape": "polygon",
             "sublocation_id": 2,
-            "sublocation_uid": "a5oicOTMSZqwG4Ja8xVeFQ",
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
             "trackable_object_uid": null,
             "trackables_in_zone": [
             ],
-            "uid": "jTcyCnRgSxWFLGHZUlaQXQ",
-            "updated_at": "2025-09-11T04:31:54.000Z",
+            "uid": "zRWQ9sLyQcuhvThKwiQVaQ",
+            "updated_at": "2025-09-15T03:40:58.000Z",
             "user_params": {
             },
             "zone_alarm_level": 0,
@@ -36,158 +36,20 @@
             "zone_geometry": {
                 "positions": [
                     {
-                        "x": 64210,
-                        "y": 58966
+                        "x": 69228,
+                        "y": 13706
                     },
                     {
-                        "x": 40020,
-                        "y": 58949
+                        "x": 74706,
+                        "y": 13640
                     },
                     {
-                        "x": 40020,
-                        "y": 25794
+                        "x": 74706,
+                        "y": 4500
                     },
                     {
-                        "x": 64220,
-                        "y": 25846
-                    },
-                    {
-                        "x": 64211,
-                        "y": 25846
-                    },
-                    {
-                        "x": 64210,
-                        "y": 25846
-                    }
-                ]
-            },
-            "zone_id": 33,
-            "zone_mode": "ALWAYS_ACTIVE",
-            "zone_type": {
-                "display_name": "Information",
-                "id": 3,
-                "name": "information"
-            },
-            "zone_type_id": 3,
-            "zone_type_name": "information"
-        },
-        {
-            "active": true,
-            "apply_to": "ALL",
-            "crc16": 38542,
-            "created_at": "2025-09-15T03:37:33.000Z",
-            "custom_info": "",
-            "default_allowed": false,
-            "depth": null,
-            "dynamic": false,
-            "location_uid": "5u7UF10yTa_hiSnxEKOOvQ",
-            "name": "Zone 7 - 165 & 166 Customer Restroom",
-            "priority": 0,
-            "project_uid": "EzU4y8EaQJuD4Y9ZartpqA",
-            "removed_at": "9999-12-31T23:59:59.000Z",
-            "schedule": {
-                "start_time": "00 00 * * *",
-                "stop_time": "00 24 * * *"
-            },
-            "shape": "polygon",
-            "sublocation_id": 2,
-            "sublocation_uid": "a5oicOTMSZqwG4Ja8xVeFQ",
-            "trackable_object_uid": null,
-            "trackables_in_zone": [
-            ],
-            "uid": "an52N8e3TDuxQYpUStZifQ",
-            "updated_at": "2025-09-15T03:37:33.000Z",
-            "user_params": {
-            },
-            "zone_alarm_level": 0,
-            "zone_exceptions": [
-            ],
-            "zone_exceptions_groups": [
-            ],
-            "zone_geometry": {
-                "positions": [
-                    {
-                        "x": 13380,
-                        "y": 21900
-                    },
-                    {
-                        "x": 18500,
-                        "y": 21900
-                    },
-                    {
-                        "x": 18500,
-                        "y": 15000
-                    },
-                    {
-                        "x": 13406,
-                        "y": 15000
-                    }
-                ]
-            },
-            "zone_id": 39,
-            "zone_mode": "ALWAYS_ACTIVE",
-            "zone_type": {
-                "display_name": "Information",
-                "id": 3,
-                "name": "information"
-            },
-            "zone_type_id": 3,
-            "zone_type_name": "information"
-        },
-        {
-            "active": true,
-            "apply_to": "LIST",
-            "crc16": 36416,
-            "created_at": "2025-09-15T03:38:04.000Z",
-            "custom_info": "",
-            "default_allowed": true,
-            "depth": null,
-            "dynamic": false,
-            "location_uid": "5u7UF10yTa_hiSnxEKOOvQ",
-            "name": "Zone 2.1 - 100 GR Sales Floor",
-            "priority": 0,
-            "project_uid": "EzU4y8EaQJuD4Y9ZartpqA",
-            "removed_at": "9999-12-31T23:59:59.000Z",
-            "schedule": {
-                "start_time": "00 00 * * *",
-                "stop_time": "00 24 * * *"
-            },
-            "shape": "polygon",
-            "sublocation_id": 2,
-            "sublocation_uid": "a5oicOTMSZqwG4Ja8xVeFQ",
-            "trackable_object_uid": null,
-            "trackables_in_zone": [
-            ],
-            "uid": "2TzF-3wGRq_hjBw2Aeo8zw",
-            "updated_at": "2025-09-15T03:38:04.000Z",
-            "user_params": {
-            },
-            "zone_alarm_level": 0,
-            "zone_exceptions": [
-            ],
-            "zone_exceptions_groups": [
-            ],
-            "zone_geometry": {
-                "positions": [
-                    {
-                        "x": 64200,
-                        "y": 29544
-                    },
-                    {
-                        "x": 64200,
-                        "y": 59000
-                    },
-                    {
-                        "x": 86000,
-                        "y": 59009
-                    },
-                    {
-                        "x": 86000,
-                        "y": 16469
-                    },
-                    {
-                        "x": 64200,
-                        "y": 16531
+                        "x": 69179,
+                        "y": 4500
                     }
                 ]
             },
@@ -202,18 +64,18 @@
             "zone_type_name": "information"
         },
         {
-            "active": false,
+            "active": true,
             "apply_to": "ALL",
-            "crc16": 55485,
-            "created_at": "2025-09-04T01:43:42.000Z",
+            "crc16": 11068,
+            "created_at": "2025-09-15T03:42:43.000Z",
             "custom_info": "",
             "default_allowed": false,
             "depth": null,
             "dynamic": false,
-            "location_uid": "5u7UF10yTa_hiSnxEKOOvQ",
-            "name": "Zone 6 - 300 Pharmacy",
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 8 - Deli",
             "priority": 0,
-            "project_uid": "EzU4y8EaQJuD4Y9ZartpqA",
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
             "removed_at": "9999-12-31T23:59:59.000Z",
             "schedule": {
                 "start_time": "00 00 * * *",
@@ -221,12 +83,12 @@
             },
             "shape": "polygon",
             "sublocation_id": 2,
-            "sublocation_uid": "a5oicOTMSZqwG4Ja8xVeFQ",
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
             "trackable_object_uid": null,
             "trackables_in_zone": [
             ],
-            "uid": "SjHmlCBCTMyRm9Y0jV49Cg",
-            "updated_at": "2025-09-11T04:32:15.000Z",
+            "uid": "hBRss8Q0RciFY6KYoqBAKg",
+            "updated_at": "2025-09-15T03:42:43.000Z",
             "user_params": {
             },
             "zone_alarm_level": 0,
@@ -237,32 +99,1335 @@
             "zone_geometry": {
                 "positions": [
                     {
-                        "x": 13264,
-                        "y": 33500
+                        "x": 7054,
+                        "y": 43657
                     },
                     {
-                        "x": 19200,
-                        "y": 33500
+                        "x": 6937,
+                        "y": 52225
                     },
                     {
-                        "x": 19200,
-                        "y": 24500
+                        "x": 1000,
+                        "y": 52160
                     },
                     {
-                        "x": 13276,
-                        "y": 24500
-                    },
-                    {
-                        "x": 13264,
-                        "y": 25586
-                    },
-                    {
-                        "x": 13203,
-                        "y": 30236
+                        "x": 1000,
+                        "y": 43969
                     }
                 ]
             },
-            "zone_id": 12,
+            "zone_id": 43,
+            "zone_mode": "ALWAYS_ACTIVE",
+            "zone_type": {
+                "display_name": "Information",
+                "id": 3,
+                "name": "information"
+            },
+            "zone_type_id": 3,
+            "zone_type_name": "information"
+        },
+        {
+            "active": true,
+            "apply_to": "ALL",
+            "crc16": 53019,
+            "created_at": "2025-09-15T03:43:45.000Z",
+            "custom_info": "",
+            "default_allowed": false,
+            "depth": null,
+            "dynamic": false,
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 9 - Receiving Backroom",
+            "priority": 0,
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
+            "removed_at": "9999-12-31T23:59:59.000Z",
+            "schedule": {
+                "start_time": "00 00 * * *",
+                "stop_time": "00 24 * * *"
+            },
+            "shape": "polygon",
+            "sublocation_id": 2,
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
+            "trackable_object_uid": null,
+            "trackables_in_zone": [
+            ],
+            "uid": "uH4VrBLJTlS1n4WxKX_I1g",
+            "updated_at": "2025-09-15T03:43:45.000Z",
+            "user_params": {
+            },
+            "zone_alarm_level": 0,
+            "zone_exceptions": [
+            ],
+            "zone_exceptions_groups": [
+            ],
+            "zone_geometry": {
+                "positions": [
+                    {
+                        "x": 18158,
+                        "y": 54033
+                    },
+                    {
+                        "x": 38000,
+                        "y": 53747
+                    },
+                    {
+                        "x": 38000,
+                        "y": 62500
+                    },
+                    {
+                        "x": 14000,
+                        "y": 62500
+                    },
+                    {
+                        "x": 14000,
+                        "y": 49092
+                    },
+                    {
+                        "x": 18262,
+                        "y": 49040
+                    }
+                ]
+            },
+            "zone_id": 44,
+            "zone_mode": "ALWAYS_ACTIVE",
+            "zone_type": {
+                "display_name": "Information",
+                "id": 3,
+                "name": "information"
+            },
+            "zone_type_id": 3,
+            "zone_type_name": "information"
+        },
+        {
+            "active": true,
+            "apply_to": "ALL",
+            "crc16": 14580,
+            "created_at": "2025-09-15T03:44:10.000Z",
+            "custom_info": "",
+            "default_allowed": false,
+            "depth": null,
+            "dynamic": false,
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 10 - Bakery Prep",
+            "priority": 0,
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
+            "removed_at": "9999-12-31T23:59:59.000Z",
+            "schedule": {
+                "start_time": "00 00 * * *",
+                "stop_time": "00 24 * * *"
+            },
+            "shape": "polygon",
+            "sublocation_id": 2,
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
+            "trackable_object_uid": null,
+            "trackables_in_zone": [
+            ],
+            "uid": "CBT2wzReTOyGM86vTn4ZbQ",
+            "updated_at": "2025-09-15T03:44:10.000Z",
+            "user_params": {
+            },
+            "zone_alarm_level": 0,
+            "zone_exceptions": [
+            ],
+            "zone_exceptions_groups": [
+            ],
+            "zone_geometry": {
+                "positions": [
+                    {
+                        "x": 25000,
+                        "y": 48908
+                    },
+                    {
+                        "x": 21731,
+                        "y": 49078
+                    },
+                    {
+                        "x": 18724,
+                        "y": 49094
+                    },
+                    {
+                        "x": 18691,
+                        "y": 53030
+                    },
+                    {
+                        "x": 25000,
+                        "y": 52866
+                    },
+                    {
+                        "x": 25000,
+                        "y": 50920
+                    }
+                ]
+            },
+            "zone_id": 45,
+            "zone_mode": "ALWAYS_ACTIVE",
+            "zone_type": {
+                "display_name": "Information",
+                "id": 3,
+                "name": "information"
+            },
+            "zone_type_id": 3,
+            "zone_type_name": "information"
+        },
+        {
+            "active": true,
+            "apply_to": "ALL",
+            "crc16": 8708,
+            "created_at": "2025-09-15T03:45:12.000Z",
+            "custom_info": "",
+            "default_allowed": false,
+            "depth": null,
+            "dynamic": false,
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 11 - Training Backroom",
+            "priority": 0,
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
+            "removed_at": "9999-12-31T23:59:59.000Z",
+            "schedule": {
+                "start_time": "00 00 * * *",
+                "stop_time": "00 24 * * *"
+            },
+            "shape": "polygon",
+            "sublocation_id": 2,
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
+            "trackable_object_uid": null,
+            "trackables_in_zone": [
+            ],
+            "uid": "bVq2bfAvQYCq7RU_i9dVUA",
+            "updated_at": "2025-09-15T03:45:12.000Z",
+            "user_params": {
+            },
+            "zone_alarm_level": 0,
+            "zone_exceptions": [
+            ],
+            "zone_exceptions_groups": [
+            ],
+            "zone_geometry": {
+                "positions": [
+                    {
+                        "x": 59000,
+                        "y": 48985
+                    },
+                    {
+                        "x": 65000,
+                        "y": 48919
+                    },
+                    {
+                        "x": 65000,
+                        "y": 54000
+                    },
+                    {
+                        "x": 59000,
+                        "y": 54000
+                    }
+                ]
+            },
+            "zone_id": 46,
+            "zone_mode": "ALWAYS_ACTIVE",
+            "zone_type": {
+                "display_name": "Information",
+                "id": 3,
+                "name": "information"
+            },
+            "zone_type_id": 3,
+            "zone_type_name": "information"
+        },
+        {
+            "active": true,
+            "apply_to": "ALL",
+            "crc16": 57879,
+            "created_at": "2025-09-18T01:52:50.000Z",
+            "custom_info": "",
+            "default_allowed": false,
+            "depth": null,
+            "dynamic": false,
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Trailer",
+            "priority": 0,
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
+            "removed_at": "9999-12-31T23:59:59.000Z",
+            "schedule": {
+                "start_time": "00 00 * * *",
+                "stop_time": "00 24 * * *"
+            },
+            "shape": "polygon",
+            "sublocation_id": 1,
+            "sublocation_uid": "FYwmL6lVTcis5JZQxfH2RA",
+            "trackable_object_uid": null,
+            "trackables_in_zone": [
+                {
+                    "entered": {
+                        "time": "2025-09-25T11:43:32.804Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "W9EYGZMFSRyMq7Taa8hQ8Q"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T11:43:32.898Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "xRzgosvGQZG-TZPVckfKFA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T11:43:32.955Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "2XQ1M8GVQ76AGpgWFVrsAQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T11:43:33.039Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "zzS2UHm5TR2-dtSUj2_zPg"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.030Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "tvB49ON2TTiZHtH85ebC0w"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.105Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "v4dFad2TR6qppST1BIOWKA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.109Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "nKmX-mquSHqFx1a8yoJfhQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.108Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "Ec3Pd2Z2Q4eNWtczux66nQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.121Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "qyEJPXGaTvCQmxJdbs9_Vw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.150Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "6V93CBB_TRiniVbh49HSVA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.159Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "TkFqoPWJSoyJOtzHAEYNRQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.170Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "s-DDVqUiTxaUT53N-XOtag"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.170Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "T9dvxsEnQ4_Rs3XfpEsgjg"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.178Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "0WSGrwMLSv6Jx36iwx7pUw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.184Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "rtzde3RSR-CBhx2rj6M1rQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.192Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "2wqPEtsAT86efJQXV2HWTw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.200Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "4SpW1aHyQ46AMV3Q22vU5w"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.200Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "rOod81EfSMy9nBkzBA3WRw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.210Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "WEWchjzzSgyUOiODZleGSQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.217Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "IAidhaCnQbewUdn3XMeF2g"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.225Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "JAoaoSTnTCGG_Ta3y3J_0g"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.234Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "NNwpDQX9Q2GOKWN1GTqiZg"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.229Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "g9rxc0avQLmW-QVFXgMW1w"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.248Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "EADbsedTS-WMReS-aEaFWw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.257Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "qi9b1uKOQfi5a5sKh7_mMA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.257Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "KjatTpuPQjq1Wbeb1TlNIg"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.257Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "Ns7HDm1ZRZG3xdAqFSOA_Q"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.275Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "Y4gjqvkaS3qRywcEYBpQEw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.290Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "PvY-K-lHRpmyW3DhI-rC4g"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.291Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "IUvHgW7qRbeig-L6G6otkw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.299Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "qgvzhx8VSL6nB6LWUzN3fQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.306Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "AXnnMxRoRhm0HldpFxNtrQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.311Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "9UHyc6h9SV_Q9v4dfbVkVw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.316Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "YEQaiGF6R-GSF42iJwzFQg"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.326Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "Z5FdL-QeRhOwYj3t7Zvdnw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.340Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "IMbXRS-aQjqVVPUxFHjINA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-25T23:31:40.358Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "aP5blD7xRhm2mi9vD66Ddw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-26T10:50:41.098Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "bUM26pspQA2f7axYKFIHtQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-30T07:23:58.149Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "e2x1VCELR-24chuCvaPQbA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-30T07:26:18.171Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "oAavYwk6R7KGRkqm_oUpsA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-09-30T08:16:10.143Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "ROmgk_8aQE2rEqWbGLTZZQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-01T14:58:09.611Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "qcNvXhVzRuWQPOpqDVyxyg"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-02T05:57:15.544Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "GujCOTc6QLCBzKE693namQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-02T10:50:31.614Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "sCEbDdp0SDuPtjDnhwSHZw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-03T06:02:55.535Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "D79mf2ofSwyH3JuX5DkalQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-03T06:02:59.539Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "Or5-xe7wR3eYBdV7mcGVqQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-03T06:03:06.621Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "h_m6p65VQzymjjhVWmvzCQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-03T06:03:07.619Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "UzvAiaqGQPieKmnrOpLe5g"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-06T10:20:19.669Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "3e7UFcplQaSi99pOXnTI2A"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.378Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "e2x1VCELR-24chuCvaPQbA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.379Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "0WSGrwMLSv6Jx36iwx7pUw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.404Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "2XQ1M8GVQ76AGpgWFVrsAQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.407Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "aP5blD7xRhm2mi9vD66Ddw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.426Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "9UHyc6h9SV_Q9v4dfbVkVw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.427Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "EADbsedTS-WMReS-aEaFWw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.457Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "Ec3Pd2Z2Q4eNWtczux66nQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.457Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "3e7UFcplQaSi99pOXnTI2A"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.458Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "qcNvXhVzRuWQPOpqDVyxyg"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.510Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "2wqPEtsAT86efJQXV2HWTw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.516Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "GujCOTc6QLCBzKE693namQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.516Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "bUM26pspQA2f7axYKFIHtQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.568Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "AXnnMxRoRhm0HldpFxNtrQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.571Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "D79mf2ofSwyH3JuX5DkalQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.575Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "2fqQcBxkRXSG6A7nicXcWA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.630Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "4SpW1aHyQ46AMV3Q22vU5w"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.637Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "g9rxc0avQLmW-QVFXgMW1w"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T21:31:35.638Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "6V93CBB_TRiniVbh49HSVA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-07T23:14:30.599Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "2j2vrPGpTOGifwkJoxQi0w"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-08T08:53:19.690Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "Wfw3b5g7SlaQ1-5BKnX6XQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-08T11:26:10.614Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "x3zn_RuXTBizvGTvxwOXjg"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-09T08:23:32.634Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "AFLYKnsNQz6GzDDcKIUwMQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T00:56:19.568Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "00spc082RcelP3rvSIBZOQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T00:56:38.633Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "GYyWoHeJRJqQrYILTuR1bA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T01:28:42.654Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "6I-_GCWDQE2diuHv_GauZA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T05:39:08.674Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "oKi7Yzu2QkSpSBhrFupzWw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T05:39:22.639Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "lhLG7K5ZQsy9TkRxqIfxGg"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T06:02:51.628Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "NDLaDgRkQY_CzruGpO0kSg"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T06:03:17.643Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "N2Dj_KBwQ36XZ2hBZgBPzA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T07:15:55.659Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "HtpgSEtkS6ex1uyvzjIIOA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T07:15:57.649Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "HMBn3RqqQneB-7d8XvDZTQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T07:15:58.678Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "Ysmg0aNcRH2E5mJUpmwhJA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T08:04:01.578Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "RdYOCpwNRi62rE5z0soLuQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T08:04:05.643Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "i2W5YeRsQRCKXvVAbO3Nsg"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T08:05:23.648Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "RwmDh5vsQqSFtIDx8ZJnyA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T08:35:23.650Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "Inr99xmyR7aS17M8HeB0Nw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T08:35:25.655Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "i5lm1xthSlirOKjK4vkH0A"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T08:35:26.708Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "fHw_JHS4SZuTbfLwVYCCFA"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T08:47:10.643Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "-IpYcgFATb2hZvGqlKKhng"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T08:47:15.638Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "MI-Aofh5Q9iCpKAvpKwhuQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T09:09:20.653Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "hAKuJkSaRWaTxxWPA2dlDQ"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T09:09:26.638Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "G2JbgCC_QseFS7ZrlW5Jhw"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T09:10:45.633Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "jdUoBMy5TueBpfkE7w409g"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-10T09:10:48.700Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "-tNbroPBQ4WOIP5r04zL7Q"
+                },
+                {
+                    "entered": {
+                        "time": "2025-10-12T01:19:39.725Z",
+                        "x": 5818,
+                        "y": 2877,
+                        "z": 1000
+                    },
+                    "uid": "2fqQcBxkRXSG6A7nicXcWA"
+                }
+            ],
+            "uid": "h-GKYpLKQRi2P_Js30wwGQ",
+            "updated_at": "2025-09-18T01:52:50.000Z",
+            "user_params": {
+            },
+            "zone_alarm_level": 0,
+            "zone_exceptions": [
+            ],
+            "zone_exceptions_groups": [
+            ],
+            "zone_geometry": {
+                "positions": [
+                    {
+                        "x": 11197,
+                        "y": 412
+                    },
+                    {
+                        "x": 264,
+                        "y": 412
+                    },
+                    {
+                        "x": 264,
+                        "y": 3402
+                    },
+                    {
+                        "x": 11197,
+                        "y": 3402
+                    }
+                ]
+            },
+            "zone_id": 48,
+            "zone_mode": "ALWAYS_ACTIVE",
+            "zone_type": {
+                "display_name": "Information",
+                "id": 3,
+                "name": "information"
+            },
+            "zone_type_id": 3,
+            "zone_type_name": "information"
+        },
+        {
+            "active": true,
+            "apply_to": "ALL",
+            "crc16": 54416,
+            "created_at": "2025-09-08T16:47:31.000Z",
+            "custom_info": "",
+            "default_allowed": false,
+            "depth": null,
+            "dynamic": false,
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 2 - Sales Floor",
+            "priority": 0,
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
+            "removed_at": "9999-12-31T23:59:59.000Z",
+            "schedule": {
+                "start_time": "00 00 * * *",
+                "stop_time": "00 24 * * *"
+            },
+            "shape": "polygon",
+            "sublocation_id": 2,
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
+            "trackable_object_uid": null,
+            "trackables_in_zone": [
+            ],
+            "uid": "nh2xgHZQQTy3aTnJJmZF8g",
+            "updated_at": "2025-09-14T02:01:09.000Z",
+            "user_params": {
+            },
+            "zone_alarm_level": 0,
+            "zone_exceptions": [
+            ],
+            "zone_exceptions_groups": [
+            ],
+            "zone_geometry": {
+                "positions": [
+                    {
+                        "x": 68500,
+                        "y": 48500
+                    },
+                    {
+                        "x": 41251,
+                        "y": 48500
+                    },
+                    {
+                        "x": 41251,
+                        "y": 16600
+                    },
+                    {
+                        "x": 46800,
+                        "y": 16600
+                    },
+                    {
+                        "x": 46800,
+                        "y": 12600
+                    },
+                    {
+                        "x": 68375,
+                        "y": 12080
+                    }
+                ]
+            },
+            "zone_id": 15,
+            "zone_mode": "ALWAYS_ACTIVE",
+            "zone_type": {
+                "display_name": "Information",
+                "id": 3,
+                "name": "information"
+            },
+            "zone_type_id": 3,
+            "zone_type_name": "information"
+        },
+        {
+            "active": true,
+            "apply_to": "ALL",
+            "crc16": 3361,
+            "created_at": "2025-09-08T16:55:14.000Z",
+            "custom_info": "",
+            "default_allowed": false,
+            "depth": null,
+            "dynamic": false,
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 9.1 - Receiving Backroom",
+            "priority": 0,
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
+            "removed_at": "9999-12-31T23:59:59.000Z",
+            "schedule": {
+                "start_time": "00 00 * * *",
+                "stop_time": "00 24 * * *"
+            },
+            "shape": "polygon",
+            "sublocation_id": 2,
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
+            "trackable_object_uid": null,
+            "trackables_in_zone": [
+            ],
+            "uid": "27-t3cZcRuyKfDygc_nQ4A",
+            "updated_at": "2025-09-14T02:01:46.000Z",
+            "user_params": {
+            },
+            "zone_alarm_level": 0,
+            "zone_exceptions": [
+            ],
+            "zone_exceptions_groups": [
+            ],
+            "zone_geometry": {
+                "positions": [
+                    {
+                        "x": 32893,
+                        "y": 49092
+                    },
+                    {
+                        "x": 32791,
+                        "y": 53680
+                    },
+                    {
+                        "x": 37120,
+                        "y": 53680
+                    },
+                    {
+                        "x": 37147,
+                        "y": 48958
+                    }
+                ]
+            },
+            "zone_id": 22,
+            "zone_mode": "ALWAYS_ACTIVE",
+            "zone_type": {
+                "display_name": "Information",
+                "id": 3,
+                "name": "information"
+            },
+            "zone_type_id": 3,
+            "zone_type_name": "information"
+        },
+        {
+            "active": false,
+            "apply_to": "ALL",
+            "crc16": 7363,
+            "created_at": "2025-09-08T16:50:03.000Z",
+            "custom_info": "",
+            "default_allowed": false,
+            "depth": null,
+            "dynamic": false,
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 7 - Pharmacy",
+            "priority": 0,
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
+            "removed_at": "9999-12-31T23:59:59.000Z",
+            "schedule": {
+                "start_time": "00 00 * * *",
+                "stop_time": "00 24 * * *"
+            },
+            "shape": "polygon",
+            "sublocation_id": 2,
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
+            "trackable_object_uid": null,
+            "trackables_in_zone": [
+            ],
+            "uid": "0OsopMmuSDOVtJ3-0XFyKw",
+            "updated_at": "2025-09-14T02:01:51.000Z",
+            "user_params": {
+            },
+            "zone_alarm_level": 0,
+            "zone_exceptions": [
+            ],
+            "zone_exceptions_groups": [
+            ],
+            "zone_geometry": {
+                "positions": [
+                    {
+                        "x": 68767,
+                        "y": 23276
+                    },
+                    {
+                        "x": 74728,
+                        "y": 23253
+                    },
+                    {
+                        "x": 74829,
+                        "y": 14184
+                    },
+                    {
+                        "x": 68876,
+                        "y": 14230
+                    }
+                ]
+            },
+            "zone_id": 18,
             "zone_mode": "DEACTIVATED",
             "zone_type": {
                 "display_name": "Information",
@@ -275,16 +1440,16 @@
         {
             "active": true,
             "apply_to": "ALL",
-            "crc16": 3072,
-            "created_at": "2025-09-04T02:32:22.000Z",
+            "crc16": 26023,
+            "created_at": "2025-09-08T16:42:01.000Z",
             "custom_info": "",
             "default_allowed": false,
             "depth": null,
             "dynamic": false,
-            "location_uid": "5u7UF10yTa_hiSnxEKOOvQ",
-            "name": "Zone 4 - FET",
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 3 - FET",
             "priority": 0,
-            "project_uid": "EzU4y8EaQJuD4Y9ZartpqA",
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
             "removed_at": "9999-12-31T23:59:59.000Z",
             "schedule": {
                 "start_time": "00 00 * * *",
@@ -292,12 +1457,12 @@
             },
             "shape": "polygon",
             "sublocation_id": 2,
-            "sublocation_uid": "a5oicOTMSZqwG4Ja8xVeFQ",
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
             "trackable_object_uid": null,
             "trackables_in_zone": [
             ],
-            "uid": "wRSIlYm2T-OjV-aM5rOj_A",
-            "updated_at": "2025-09-11T04:32:05.000Z",
+            "uid": "DSkrjC01Ste_i54TUOIUAA",
+            "updated_at": "2025-09-14T02:01:18.000Z",
             "user_params": {
             },
             "zone_alarm_level": 0,
@@ -308,24 +1473,24 @@
             "zone_geometry": {
                 "positions": [
                     {
-                        "x": 40050,
-                        "y": 25695
+                        "x": 18515,
+                        "y": 16448
                     },
                     {
-                        "x": 64000,
-                        "y": 25869
+                        "x": 46367,
+                        "y": 16292
                     },
                     {
-                        "x": 64000,
-                        "y": 15935
+                        "x": 46523,
+                        "y": 5603
                     },
                     {
-                        "x": 40050,
-                        "y": 15586
+                        "x": 18593,
+                        "y": 5291
                     }
                 ]
             },
-            "zone_id": 27,
+            "zone_id": 11,
             "zone_mode": "ALWAYS_ACTIVE",
             "zone_type": {
                 "display_name": "Information",
@@ -338,16 +1503,16 @@
         {
             "active": true,
             "apply_to": "ALL",
-            "crc16": 40293,
-            "created_at": "2025-09-04T01:55:02.000Z",
+            "crc16": 27974,
+            "created_at": "2025-09-08T16:42:50.000Z",
             "custom_info": "",
             "default_allowed": false,
             "depth": null,
             "dynamic": false,
-            "location_uid": "5u7UF10yTa_hiSnxEKOOvQ",
-            "name": "Zone 3 - 101 GM Vestibule",
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 1.1 - GR Sales Floor",
             "priority": 0,
-            "project_uid": "EzU4y8EaQJuD4Y9ZartpqA",
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
             "removed_at": "9999-12-31T23:59:59.000Z",
             "schedule": {
                 "start_time": "00 00 * * *",
@@ -355,12 +1520,12 @@
             },
             "shape": "polygon",
             "sublocation_id": 2,
-            "sublocation_uid": "a5oicOTMSZqwG4Ja8xVeFQ",
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
             "trackable_object_uid": null,
             "trackables_in_zone": [
             ],
-            "uid": "qLiRyib9QNibQWFu1Ob_3A",
-            "updated_at": "2025-09-11T04:32:00.000Z",
+            "uid": "b7Pd1rhmQ-C9cQGRlP9uug",
+            "updated_at": "2025-09-14T02:00:19.000Z",
             "user_params": {
             },
             "zone_alarm_level": 0,
@@ -371,24 +1536,24 @@
             "zone_geometry": {
                 "positions": [
                     {
-                        "x": 63247,
-                        "y": 15680
+                        "x": 40470,
+                        "y": 48500
                     },
                     {
-                        "x": 73000,
-                        "y": 15746
+                        "x": 17956,
+                        "y": 48500
                     },
                     {
-                        "x": 73000,
-                        "y": 8899
+                        "x": 18179,
+                        "y": 16600
                     },
                     {
-                        "x": 63269,
-                        "y": 8856
+                        "x": 40466,
+                        "y": 16600
                     }
                 ]
             },
-            "zone_id": 26,
+            "zone_id": 12,
             "zone_mode": "ALWAYS_ACTIVE",
             "zone_type": {
                 "display_name": "Information",
@@ -401,605 +1566,16 @@
         {
             "active": true,
             "apply_to": "ALL",
-            "crc16": 47052,
-            "created_at": "2025-09-14T02:05:07.000Z",
+            "crc16": 22971,
+            "created_at": "2025-09-15T03:40:30.000Z",
             "custom_info": "",
             "default_allowed": false,
             "depth": null,
             "dynamic": false,
-            "location_uid": "5u7UF10yTa_hiSnxEKOOvQ",
-            "name": "Zone 10 - Trailer",
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 4 - Pickup Storage & Service Desk",
             "priority": 0,
-            "project_uid": "EzU4y8EaQJuD4Y9ZartpqA",
-            "removed_at": "9999-12-31T23:59:59.000Z",
-            "schedule": {
-                "start_time": "00 00 * * *",
-                "stop_time": "00 24 * * *"
-            },
-            "shape": "polygon",
-            "sublocation_id": 1,
-            "sublocation_uid": "4_kF-L7dSO_PlOj3DocURw",
-            "trackable_object_uid": null,
-            "trackables_in_zone": [
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.403Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "-GjkYYYjQ9eVZDGpJGo6OA"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.404Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "0zQFu87mQnSlAFgYd7HJkw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.405Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "5x1_FjjrT02nAdaAcW3jLg"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.404Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "3sYE4-ucQEa4fNiBIwLe4A"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.405Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "5xGof1TfR6ejrkDzQBGX1A"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.407Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "bm-Pt-ujSke3Ck0Nn0tFag"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.408Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "buoFPixCTQeZgHOb8URl0w"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.409Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "CO_3FFSRSe66mmsP83pzOw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.413Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "l2jCQzmjRb216inU0ZomZQ"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.413Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "LJGHXxS3TDmKSumG1VZAqw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.410Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "F9J9pJ2_RWaAnX-kQHMQZw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.415Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "SlRyQKqyS8ukEjYFHUNxLg"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.414Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "PFcRvYOKRcG2DvC8kH2xrQ"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.418Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "xi0zOAYSTpuf2lMdLe98XQ"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.419Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "YxrKf3pVSlGsOWfCzpz4SQ"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.409Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "EZ3s5MFlRGqmJTG_xpUpqw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.420Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "ZTFYlsH8RoqJ7EywwrL8lA"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.419Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "yRKk9E4KQ_6kJF2xfycIaQ"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.417Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "VpSThDXQTkWGZUlPgvIHww"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.417Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "v9uagGHtSHSqrErs_5OUpA"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:37.416Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "UkK2nV3UTMqGA1uduZgJhA"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.153Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "RAcK6lflTru7Hy5fx3e90Q"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.166Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "fiQpYVs_RYOv_HO45Hv7pw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.167Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "pi8TXtZnRKG0Z78zeL-Lpw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.168Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "caakKdhMSoivnRuih63FhQ"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.210Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "EnPs6voTRbGuy-RgBhnbsQ"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.211Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "dxuK7BhuRrG-vLd4vBdItw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.211Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "fU7aMpE3TaqZxQCJCFXRrA"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.251Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "MwhSyfewTJSC9Dtm_jdP0g"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.252Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "2YV04aC9QXGAU4lWau-nVA"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.257Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "I338T9ZDQZ_YMyY0mXgw3w"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.309Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "HKkBnX_iT-aF9z8OWcLDKA"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.310Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "s9PC32jdQ3az8otjE0vWaw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.311Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "Z861OuCxS_iQXuRdMO0hpw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.311Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "zNSFBbhNRwmIZzFEjIZJzA"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.365Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "Qmu46ZqUTdexwDk0ykkTeg"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.366Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "vxDd6oyQTL_nGbVR3ATw-Q"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.366Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "2jcjqdYkQN_-eEgRGMSS_w"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-23T16:35:43.416Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "j2JT6ClnS8m1rlxLt57Upg"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-29T07:54:04.926Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "OaEiYQM5QUyAtUSwTiSFbw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-29T07:54:12.930Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "BvV82mScRw2Icg1Op_6frQ"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-29T07:54:20.995Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "pqCjVF7mT52W6bj6hRdGlw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-09-30T06:37:49.406Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "rK5XxKEWRMGPBXS7hrmZRA"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-01T05:59:34.766Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "5y78Y69nRKKJHlH_q6jtxQ"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-01T05:59:37.846Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "shWcX_MhQ0yr-1uh18MR1A"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-02T07:11:55.036Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "kplZNvjQTaus1ftIQaEEhg"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-02T07:12:05.346Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "-SD7dY2eQomOhjBs6ahOSw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-03T09:28:29.810Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "I0Ac92BARrOzn95PUX61aw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-08T08:29:38.101Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "W0NQgGvQQ2G-49BTRTMOlw"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-09T07:31:31.605Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "tPwd9bXeTY_J3qyWC3GagQ"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-09T07:31:32.625Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "BTvT_KSaTI2BFv48EqQciA"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-09T08:30:41.660Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "uwpg4tDeRQevNCBitRa39Q"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-09T08:40:58.636Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "1Ip83YZdT8uObjdvlN1pWQ"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-09T10:09:09.702Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "xt28IyKmQKatD4lP5-xplQ"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-09T10:51:36.675Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "HoYH7lgAStqWV1QeUxqu0A"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-09T10:52:47.760Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "SAdAkdceQ1OUGGmd6fUlGA"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-09T10:52:49.705Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "P7kNte9sTGiw7tnBgCM92Q"
-                },
-                {
-                    "entered": {
-                        "time": "2025-10-09T10:52:52.685Z",
-                        "x": 4541,
-                        "y": 2866,
-                        "z": 1000
-                    },
-                    "uid": "GjKBaDk3TnmPWx0mQzvRDg"
-                }
-            ],
-            "uid": "FOjkHK0JQwOX8XwZJFhWCg",
-            "updated_at": "2025-09-14T02:05:45.000Z",
-            "user_params": {
-            },
-            "zone_alarm_level": 0,
-            "zone_exceptions": [
-            ],
-            "zone_exceptions_groups": [
-            ],
-            "zone_geometry": {
-                "positions": [
-                    {
-                        "x": 4704,
-                        "y": 3717
-                    },
-                    {
-                        "x": 12274,
-                        "y": 3653
-                    },
-                    {
-                        "x": 12252,
-                        "y": 680
-                    },
-                    {
-                        "x": 602,
-                        "y": 604
-                    },
-                    {
-                        "x": 587,
-                        "y": 3730
-                    }
-                ]
-            },
-            "zone_id": 36,
-            "zone_mode": "ALWAYS_ACTIVE",
-            "zone_type": {
-                "display_name": "Information",
-                "id": 3,
-                "name": "information"
-            },
-            "zone_type_id": 3,
-            "zone_type_name": "information"
-        },
-        {
-            "active": true,
-            "apply_to": "ALL",
-            "crc16": 6832,
-            "created_at": "2025-09-06T15:22:38.000Z",
-            "custom_info": "",
-            "default_allowed": false,
-            "depth": null,
-            "dynamic": false,
-            "location_uid": "5u7UF10yTa_hiSnxEKOOvQ",
-            "name": "Zone 1.1 - 100 Sales Floor",
-            "priority": 0,
-            "project_uid": "EzU4y8EaQJuD4Y9ZartpqA",
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
             "removed_at": "9999-12-31T23:59:59.000Z",
             "schedule": {
                 "start_time": "00 00 * * *",
@@ -1007,12 +1583,12 @@
             },
             "shape": "polygon",
             "sublocation_id": 2,
-            "sublocation_uid": "a5oicOTMSZqwG4Ja8xVeFQ",
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
             "trackable_object_uid": null,
             "trackables_in_zone": [
             ],
-            "uid": "fLScdBTASWGZGLXDP9E7CA",
-            "updated_at": "2025-09-11T04:31:42.000Z",
+            "uid": "d1f0r5P0SbSDsKjXmeIoXA",
+            "updated_at": "2025-09-15T03:40:30.000Z",
             "user_params": {
             },
             "zone_alarm_level": 0,
@@ -1023,91 +1599,28 @@
             "zone_geometry": {
                 "positions": [
                     {
-                        "x": 25049,
-                        "y": 22619
+                        "x": 46875,
+                        "y": 4500
                     },
                     {
-                        "x": 33814,
-                        "y": 22282
+                        "x": 46825,
+                        "y": 12463
                     },
                     {
-                        "x": 39827,
-                        "y": 22355
+                        "x": 51955,
+                        "y": 12428
                     },
                     {
-                        "x": 40010,
-                        "y": 33698
+                        "x": 51959,
+                        "y": 11463
                     },
                     {
-                        "x": 19346,
-                        "y": 33571
+                        "x": 61627,
+                        "y": 11409
                     },
                     {
-                        "x": 19382,
-                        "y": 22391
-                    }
-                ]
-            },
-            "zone_id": 32,
-            "zone_mode": "ALWAYS_ACTIVE",
-            "zone_type": {
-                "display_name": "Information",
-                "id": 3,
-                "name": "information"
-            },
-            "zone_type_id": 3,
-            "zone_type_name": "information"
-        },
-        {
-            "active": true,
-            "apply_to": "ALL",
-            "crc16": 43818,
-            "created_at": "2025-09-15T03:37:19.000Z",
-            "custom_info": "",
-            "default_allowed": false,
-            "depth": null,
-            "dynamic": false,
-            "location_uid": "5u7UF10yTa_hiSnxEKOOvQ",
-            "name": "Zone 9 - 946 Pickup Storage",
-            "priority": 0,
-            "project_uid": "EzU4y8EaQJuD4Y9ZartpqA",
-            "removed_at": "9999-12-31T23:59:59.000Z",
-            "schedule": {
-                "start_time": "00 00 * * *",
-                "stop_time": "00 24 * * *"
-            },
-            "shape": "polygon",
-            "sublocation_id": 2,
-            "sublocation_uid": "a5oicOTMSZqwG4Ja8xVeFQ",
-            "trackable_object_uid": null,
-            "trackables_in_zone": [
-            ],
-            "uid": "mBkDdGvWQieQ6WZUgJHi6w",
-            "updated_at": "2025-09-15T03:37:19.000Z",
-            "user_params": {
-            },
-            "zone_alarm_level": 0,
-            "zone_exceptions": [
-            ],
-            "zone_exceptions_groups": [
-            ],
-            "zone_geometry": {
-                "positions": [
-                    {
-                        "x": 25830,
-                        "y": 21925
-                    },
-                    {
-                        "x": 35843,
-                        "y": 22015
-                    },
-                    {
-                        "x": 35903,
-                        "y": 15000
-                    },
-                    {
-                        "x": 25740,
-                        "y": 15000
+                        "x": 61515,
+                        "y": 4500
                     }
                 ]
             },
@@ -1124,16 +1637,16 @@
         {
             "active": true,
             "apply_to": "ALL",
-            "crc16": 45811,
-            "created_at": "2025-09-04T13:08:37.000Z",
+            "crc16": 18399,
+            "created_at": "2025-09-15T03:42:24.000Z",
             "custom_info": "",
             "default_allowed": false,
             "depth": null,
             "dynamic": false,
-            "location_uid": "5u7UF10yTa_hiSnxEKOOvQ",
-            "name": "Zone 5 - 153 UPS & 173 Personnel",
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 2.1 - Sales Floor",
             "priority": 0,
-            "project_uid": "EzU4y8EaQJuD4Y9ZartpqA",
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
             "removed_at": "9999-12-31T23:59:59.000Z",
             "schedule": {
                 "start_time": "00 00 * * *",
@@ -1141,12 +1654,12 @@
             },
             "shape": "polygon",
             "sublocation_id": 2,
-            "sublocation_uid": "a5oicOTMSZqwG4Ja8xVeFQ",
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
             "trackable_object_uid": null,
             "trackables_in_zone": [
             ],
-            "uid": "YpLI4aEASmSFmRh5aNybtQ",
-            "updated_at": "2025-09-11T04:32:10.000Z",
+            "uid": "3h4s98TASPaRMLGTb_ZMqQ",
+            "updated_at": "2025-09-15T03:42:24.000Z",
             "user_params": {
             },
             "zone_alarm_level": 0,
@@ -1157,32 +1670,24 @@
             "zone_geometry": {
                 "positions": [
                     {
-                        "x": 16901,
-                        "y": 59225
+                        "x": 68500,
+                        "y": 48516
                     },
                     {
-                        "x": 16996,
-                        "y": 63823
+                        "x": 75500,
+                        "y": 48617
                     },
                     {
-                        "x": 25129,
-                        "y": 63815
+                        "x": 75500,
+                        "y": 23807
                     },
                     {
-                        "x": 28240,
-                        "y": 63746
-                    },
-                    {
-                        "x": 28266,
-                        "y": 59191
-                    },
-                    {
-                        "x": 24455,
-                        "y": 59191
+                        "x": 68500,
+                        "y": 23820
                     }
                 ]
             },
-            "zone_id": 30,
+            "zone_id": 42,
             "zone_mode": "ALWAYS_ACTIVE",
             "zone_type": {
                 "display_name": "Information",
@@ -1195,16 +1700,16 @@
         {
             "active": true,
             "apply_to": "ALL",
-            "crc16": 1142,
-            "created_at": "2025-09-15T03:38:36.000Z",
+            "crc16": 43585,
+            "created_at": "2025-09-15T03:45:45.000Z",
             "custom_info": "",
             "default_allowed": false,
             "depth": null,
             "dynamic": false,
-            "location_uid": "5u7UF10yTa_hiSnxEKOOvQ",
-            "name": "Zone 1 - 100 Sales Floor",
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 1 - GR Sales Floor",
             "priority": 0,
-            "project_uid": "EzU4y8EaQJuD4Y9ZartpqA",
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
             "removed_at": "9999-12-31T23:59:59.000Z",
             "schedule": {
                 "start_time": "00 00 * * *",
@@ -1212,12 +1717,12 @@
             },
             "shape": "polygon",
             "sublocation_id": 2,
-            "sublocation_uid": "a5oicOTMSZqwG4Ja8xVeFQ",
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
             "trackable_object_uid": null,
             "trackables_in_zone": [
             ],
-            "uid": "Zpx4H8nGQCKpvhTt1jwWpQ",
-            "updated_at": "2025-09-15T03:38:36.000Z",
+            "uid": "_HBeX75ERmS_lM-ivZ0KkQ",
+            "updated_at": "2025-09-15T03:45:45.000Z",
             "user_params": {
             },
             "zone_alarm_level": 0,
@@ -1228,32 +1733,32 @@
             "zone_geometry": {
                 "positions": [
                     {
-                        "x": 40000,
-                        "y": 58670
+                        "x": 1000,
+                        "y": 42772
                     },
                     {
-                        "x": 12000,
-                        "y": 58800
+                        "x": 7678,
+                        "y": 42746
                     },
                     {
-                        "x": 12000,
-                        "y": 33668
+                        "x": 7808,
+                        "y": 48500
                     },
                     {
-                        "x": 19400,
-                        "y": 33612
+                        "x": 17900,
+                        "y": 48500
                     },
                     {
-                        "x": 19500,
-                        "y": 33612
+                        "x": 18028,
+                        "y": 5000
                     },
                     {
-                        "x": 40000,
-                        "y": 33612
+                        "x": 1000,
+                        "y": 5000
                     }
                 ]
             },
-            "zone_id": 41,
+            "zone_id": 47,
             "zone_mode": "ALWAYS_ACTIVE",
             "zone_type": {
                 "display_name": "Information",
@@ -1266,16 +1771,16 @@
         {
             "active": true,
             "apply_to": "ALL",
-            "crc16": 25378,
-            "created_at": "2025-09-15T03:36:51.000Z",
+            "crc16": 59302,
+            "created_at": "2025-09-15T03:40:46.000Z",
             "custom_info": "",
             "default_allowed": false,
             "depth": null,
             "dynamic": false,
-            "location_uid": "5u7UF10yTa_hiSnxEKOOvQ",
-            "name": "Zone 8 - 151 Breakroom",
+            "location_uid": "NAMJRmzwQG2jRPmQSsyYYw",
+            "name": "Zone 5 - Breakroom",
             "priority": 0,
-            "project_uid": "EzU4y8EaQJuD4Y9ZartpqA",
+            "project_uid": "2EutI3dtT9uD-Th0attiNA",
             "removed_at": "9999-12-31T23:59:59.000Z",
             "schedule": {
                 "start_time": "00 00 * * *",
@@ -1283,12 +1788,12 @@
             },
             "shape": "polygon",
             "sublocation_id": 2,
-            "sublocation_uid": "a5oicOTMSZqwG4Ja8xVeFQ",
+            "sublocation_uid": "RW-6krxsS3eiKfTyj6Cy6Q",
             "trackable_object_uid": null,
             "trackables_in_zone": [
             ],
-            "uid": "4zisG4K2TEmYEpvT22kxsA",
-            "updated_at": "2025-09-15T03:36:51.000Z",
+            "uid": "2rLEfaiRSxq-DYGwyLlqug",
+            "updated_at": "2025-09-15T03:40:46.000Z",
             "user_params": {
             },
             "zone_alarm_level": 0,
@@ -1299,24 +1804,24 @@
             "zone_geometry": {
                 "positions": [
                     {
-                        "x": 19200,
-                        "y": 22000
+                        "x": 68760,
+                        "y": 4500
                     },
                     {
-                        "x": 26000,
-                        "y": 22000
+                        "x": 61979,
+                        "y": 4500
                     },
                     {
-                        "x": 26000,
-                        "y": 15000
+                        "x": 61979,
+                        "y": 11710
                     },
                     {
-                        "x": 19200,
-                        "y": 15000
+                        "x": 68760,
+                        "y": 11710
                     }
                 ]
             },
-            "zone_id": 37,
+            "zone_id": 39,
             "zone_mode": "ALWAYS_ACTIVE",
             "zone_type": {
                 "display_name": "Information",

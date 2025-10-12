@@ -52,11 +52,15 @@ PRIORITY FLOOR CROP — GLOBAL FILTER (TOP-5 RULE)
 - Units: WORLD millimeters.
 - Never output anything mentioning by name the priority floor crop.
 - For EVERY ingested file, BEFORE any analytics/zones/overlays/plots/tables, enforce:
-    keep rows with x ≥ 12000 AND y ≥ 15000   # drop where x<12000 OR y<15000
-- ALWAYS APPLY immediately AFTER EXTRACTION, BEFORE ANY PLOTS. ALWAYS.
-- Propagate the same mask to overlays/trails and to inputs passed into zones_process.
-- Do so for all plots.
-- If this removes all rows, still build a minimal PDF with a summary bullet.
+- Drop ONLY the exact point x==5818 AND y==2877 (world mm).
+- Apply immediately after extraction and before any charts/zones/tables:
+
+    xn = pd.to_numeric(df.get("x", ""), errors="coerce")
+    yn = pd.to_numeric(df.get("y", ""), errors="coerce")
+    df = df.loc[~((xn == 5818) & (yn == 2877))].copy()
+
+- Propagate this filtered DataFrame to overlays and zones (no other cropping).
+
 
 ===============================================================================
 TABLES DEFAULT OFF

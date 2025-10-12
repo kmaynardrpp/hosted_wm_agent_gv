@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
-const API_BASE = import.meta.env.VITE_API_BASE || window.location.origin;
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 export default function App() {
   const [messages, setMessages] = useState([]);
@@ -71,7 +71,7 @@ export default function App() {
         <div className="msg-wrap mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-blue-600" />
-            <h1 className="font-semibold">InfoZone Web Chat</h1>
+            <h1 className="font-semibold">Position Analysis Web Chat</h1>
           </div>
           <a className="text-sm text-blue-600 hover:underline" href={`${API_BASE}/docs`} target="_blank">API docs</a>
         </div>

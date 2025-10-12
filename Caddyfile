@@ -1,4 +1,4 @@
-rpp-greenville.duckdns.org {
+rppgc.duckdns.org {
     encode zstd gzip
     reverse_proxy api:8000
 }

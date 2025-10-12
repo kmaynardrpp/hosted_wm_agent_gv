@@ -1,16 +1,20 @@
 import React, { useCallback, useRef, useState } from "react";
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
+// Always use same-origin in prod; allow override via Vite env only if set.
+const API_BASE = (import.meta.env.VITE_API_BASE && import.meta.env.VITE_API_BASE.trim())
+  ? import.meta.env.VITE_API_BASE.trim()
+  : window.location.origin;
 
 export default function App() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([]); // {role,text,artifacts?,logs?}
   const [prompt, setPrompt] = useState("");
-  const [files, setFiles] = useState([]);
-  const [busy, setBusy] = useState(false);
+  const [files, setFiles]   = useState([]);     // File[]
+  const [busy, setBusy]     = useState(false);
   const inputRef = useRef(null);
-  const fileRef = useRef(null);
+  const fileRef  = useRef(null);
 
   const removeFile = (i) => setFiles((prev) => prev.filter((_, idx) => idx !== i));
-  const pickFiles = () => fileRef.current?.click();
+  const pickFiles  = () => fileRef.current?.click();
 
   const onDrop = useCallback((e) => {
     e.preventDefault();
@@ -22,8 +26,11 @@ export default function App() {
     const items = e.clipboardData?.items;
     if (!items) return;
     const pasted = [];
-    for (const it of items) if (it.kind === "file") {
-      const f = it.getAsFile(); if (f) pasted.push(f);
+    for (const it of items) {
+      if (it.kind === "file") {
+        const f = it.getAsFile();
+        if (f) pasted.push(f);
+      }
     }
     if (pasted.length) setFiles((p) => [...p, ...pasted]);
   }, []);
@@ -33,26 +40,40 @@ export default function App() {
     if (!trimmed || busy) return;
     setBusy(true);
     setMessages((prev) => [...prev, { role: "user", text: trimmed }]);
+
     try {
       const fd = new FormData();
       fd.append("prompt", trimmed);
       for (const f of files) fd.append("files", f, f.name);
 
-      const res = await fetch(`${API_BASE}/api/run`, { method: "POST", body: fd });
+      const res = await fetch(`${API_BASE}/api/run`, {
+        method: "POST",
+        body: fd,
+      });
+
       if (!res.ok) {
-        const t = await res.text();
-        setMessages((prev) => [...prev, { role: "assistant", text: `Error: ${res.status}. ${t}` }]);
+        const t = await res.text().catch(() => "");
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", text: `Error: ${res.status}. ${t || "Request failed."}` },
+        ]);
       } else {
         const data = await res.json();
-        setMessages((prev) => [...prev, {
-          role: "assistant",
-          text: data.summary || "Report ready.",
-          artifacts: Array.isArray(data.artifacts) ? data.artifacts : [],
-          logs: data.logs || "",
-        }]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            text: data.summary || "Report ready.",
+            artifacts: Array.isArray(data.artifacts) ? data.artifacts : [],
+            logs: data.logs || "",
+          },
+        ]);
       }
     } catch (e) {
-      setMessages((prev) => [...prev, { role: "assistant", text: `Network error: ${e.message || e}` }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: `Network error: ${e?.message || e}` },
+      ]);
     } finally {
       setBusy(false);
       setPrompt("");
@@ -62,7 +83,10 @@ export default function App() {
   }, [prompt, files, busy]);
 
   const onKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void send();
+    }
   };
 
   return (
@@ -71,19 +95,26 @@ export default function App() {
         <div className="msg-wrap mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-blue-600" />
-            <h1 className="font-semibold">Position Analysis Web Chat</h1>
+            <h1 className="font-semibold">InfoZone Web Chat</h1>
           </div>
-          <a className="text-sm text-blue-600 hover:underline" href={`${API_BASE}/docs`} target="_blank">API docs</a>
+          <a className="text-sm text-blue-600 hover:underline" href={`${API_BASE}/api/ping`} target="_blank" rel="noreferrer">
+            API ping
+          </a>
         </div>
       </header>
 
-      <main className="flex-1 msg-wrap mx-auto w-full px-4 py-6"
-            onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+      <main
+        className="flex-1 msg-wrap mx-auto w-full px-4 py-6"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={onDrop}
+      >
         <div className="space-y-6">
+          {/* Messages */}
           <div className="space-y-4">
             {messages.map((m, i) => <MessageBubble key={i} {...m} apiBase={API_BASE} />)}
           </div>
 
+          {/* Composer */}
           <div className="border rounded-2xl shadow-soft bg-white">
             <div className="p-3 flex flex-wrap gap-2">
               {files.map((f, i) => (
@@ -107,8 +138,13 @@ export default function App() {
               />
               <div className="mt-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <input ref={fileRef} type="file" multiple className="hidden"
-                         onChange={(e) => setFiles((p) => [...p, ...Array.from(e.target.files || [])])} />
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => setFiles((p) => [...p, ...Array.from(e.target.files || [])])}
+                  />
                   <button onClick={pickFiles} className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200">
                     Attach files
                   </button>
@@ -118,14 +154,18 @@ export default function App() {
                   onClick={send}
                   disabled={busy || !prompt.trim()}
                   className="px-4 py-2 rounded-xl bg-blue-600 text-white disabled:opacity-50"
-                >{busy ? "Running…" : "Send"}</button>
+                >
+                  {busy ? "Running…" : "Send"}
+                </button>
               </div>
             </div>
           </div>
         </div>
       </main>
 
-      <footer className="text-xs text-center text-gray-500 py-6">Local-only • Displays PDFs & PNGs from your generator</footer>
+      <footer className="text-xs text-center text-gray-500 py-6">
+        Same-origin API: <code>{API_BASE}</code>
+      </footer>
     </div>
   );
 }
@@ -162,7 +202,7 @@ function Artifact({ a, apiBase }) {
       <div className="border rounded-lg overflow-hidden">
         <div className="text-xs px-3 py-2 bg-gray-100 flex items-center justify-between">
           <span>{filename}</span>
-          <a href={url} target="_blank" className="text-blue-600 hover:underline">Open</a>
+          <a href={url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Open</a>
         </div>
         <iframe src={`${url}#toolbar=0`} className="art-iframe" />
       </div>
@@ -172,7 +212,7 @@ function Artifact({ a, apiBase }) {
     <div className="border rounded-lg overflow-hidden">
       <div className="text-xs px-3 py-2 bg-gray-100 flex items-center justify-between">
         <span>{filename}</span>
-        <a href={url} target="_blank" className="text-blue-600 hover:underline">Open</a>
+        <a href={url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Open</a>
       </div>
       {/* eslint-disable-next-line jsx-a11y/alt-text */}
       <img src={url} alt={filename} className="max-h-[480px] w-auto" />

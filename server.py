@@ -1,4 +1,4 @@
-# server.py — FastAPI bridge for InfoZone (container/EC2 ready)
+# server.py — FastAPI bridge for InfoZone (auto-detect SPA dist)
 import os
 import re
 import sys
@@ -21,23 +21,51 @@ RUNS_DIR = PROJECT_ROOT / ".runs"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
-# ---------- App ----------
-app = FastAPI(title="InfoZone Web Bridge", version="0.4.0")
+app = FastAPI(title="InfoZone Web Bridge", version="0.4.1")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],     # tighten later if needed
+    allow_origins=["*"],  # tighten later if needed
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Serve project root so PDFs/PNGs are reachable at /files/...
+# Serve files under project root for /files/...
 app.mount("/files", StaticFiles(directory=str(PROJECT_ROOT)), name="files")
 
-# Serve the built SPA if present (web/infozone-web/dist)
-FRONTEND_DIR = PROJECT_ROOT / "web" / "infozone-web" / "dist"
-if FRONTEND_DIR.exists():
-    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIR / "assets")), name="assets")
+# ---------- Auto-detect SPA dist ----------
+def _find_frontend_dir() -> Optional[Path]:
+    # 1) explicit env override
+    env_dir = os.environ.get("FRONTEND_DIR", "").strip()
+    if env_dir:
+        p = Path(env_dir).resolve()
+        if (p / "index.html").exists():
+            return p
+
+    # 2) common locations
+    candidates = [
+        PROJECT_ROOT / "web" / "infozone-web" / "dist",
+        PROJECT_ROOT / "web" / "infozone-web-gv" / "dist",
+    ]
+    # 3) glob any web/*/dist with index.html
+    web_root = PROJECT_ROOT / "web"
+    if web_root.exists():
+        for sub in web_root.iterdir():
+            p = sub / "dist"
+            if (p / "index.html").exists():
+                candidates.append(p)
+
+    for c in candidates:
+        if c and (c / "index.html").exists():
+            return c
+    return None
+
+FRONTEND_DIR = _find_frontend_dir()
+if FRONTEND_DIR:
+    # mount static assets (vite puts hashed files under /assets)
+    assets = FRONTEND_DIR / "assets"
+    if assets.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets)), name="assets")
 
     @app.get("/", response_model=None)
     def _root() -> Response:
@@ -45,22 +73,20 @@ if FRONTEND_DIR.exists():
 
     @app.get("/{full_path:path}", response_model=None)
     def _spa(full_path: str) -> Response:
-        idx = FRONTEND_DIR / "index.html"
-        return FileResponse(idx if idx.exists() else FRONTEND_DIR / "404.html")
+        # Always serve index.html for SPA routes
+        index = FRONTEND_DIR / "index.html"
+        return FileResponse(index if index.exists() else FRONTEND_DIR / "404.html")
 
-# Matches: [Download the PDF](file:///C:/path/to/report.pdf)
+# ---------- Link parsing ----------
 FILELINK_RE = re.compile(r"\[[^\]]+\]\(file:///([^)\r\n]+)\)")
 
 def _artifact_type(path: str) -> str:
     ext = (path.rsplit(".", 1)[-1] if "." in path else "").lower()
-    if ext == "pdf":
-        return "pdf"
-    if ext in {"png", "jpg", "jpeg", "gif", "webp"}:
-        return "image"
+    if ext == "pdf": return "pdf"
+    if ext in {"png","jpg","jpeg","gif","webp"}: return "image"
     return "file"
 
 def _to_http_url(local_path: str) -> Optional[str]:
-    """Map absolute local path -> /files/<relative> if under PROJECT_ROOT."""
     try:
         p = Path(local_path.replace("\\", "/")).resolve()
         root = PROJECT_ROOT.resolve()
@@ -71,16 +97,16 @@ def _to_http_url(local_path: str) -> Optional[str]:
     except Exception:
         return None
 
+# ---------- API ----------
 @app.get("/api/ping", response_model=None)
 def ping() -> Response:
-    return JSONResponse({"ok": True, "root": str(PROJECT_ROOT), "has_main": MAIN_PY.exists()})
+    return JSONResponse({"ok": True, "root": str(PROJECT_ROOT), "has_main": MAIN_PY.exists(), "spa": str(FRONTEND_DIR) if FRONTEND_DIR else None})
 
 @app.post("/api/run", response_model=None)
 def run(prompt: str = Form(...), files: List[UploadFile] = File(default=[])) -> Response:
     if not MAIN_PY.exists():
         return PlainTextResponse("main.py not found under INFOZONE_ROOT", status_code=500)
 
-    # Save uploads to a per-request dir
     job_dir = UPLOAD_DIR / f"job_{os.getpid()}_{os.urandom(3).hex()}"
     job_dir.mkdir(parents=True, exist_ok=True)
 
@@ -91,10 +117,8 @@ def run(prompt: str = Form(...), files: List[UploadFile] = File(default=[])) -> 
             shutil.copyfileobj(f.file, w)
         csv_paths.append(dest.resolve())
 
-    # Build the command: python main.py "<prompt>" <csv1>...
     cmd = [sys.executable, str(MAIN_PY), prompt] + [str(p) for p in csv_paths]
 
-    # Ensure helpers import from ROOT + set per-job OUT dir in .runs
     env = os.environ.copy()
     env["PYTHONPATH"] = str(PROJECT_ROOT) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
     job_out = RUNS_DIR / job_dir.name
@@ -102,21 +126,14 @@ def run(prompt: str = Form(...), files: List[UploadFile] = File(default=[])) -> 
     env["INFOZONE_OUT_DIR"] = str(job_out)
 
     proc = subprocess.run(
-        cmd,
-        cwd=str(PROJECT_ROOT),
-        env=env,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="ignore",
+        cmd, cwd=str(PROJECT_ROOT), env=env,
+        capture_output=True, text=True, encoding="utf-8", errors="ignore"
     )
 
     stdout = proc.stdout or ""
     stderr = proc.stderr or ""
 
-    # Parse Markdown file:/// links
     links = FILELINK_RE.findall(stdout)
-    # also allow bare lines with file:///
     for line in stdout.splitlines():
         if "file:///" in line and "](" not in line:
             try:
@@ -129,27 +146,17 @@ def run(prompt: str = Form(...), files: List[UploadFile] = File(default=[])) -> 
     artifacts = []
     seen = set()
     for link in links:
-        if link in seen:
-            continue
+        if link in seen: continue
         seen.add(link)
         http = _to_http_url(link)
-        if not http:
-            continue
-        artifacts.append({"url": http, "type": _artifact_type(link), "filename": Path(link).name})
+        if http:
+            artifacts.append({"url": http, "type": _artifact_type(link), "filename": Path(link).name})
 
     ok = (proc.returncode == 0)
     summary = "Report created." if ok and artifacts else "Runner finished (check logs)."
     status = 200 if ok else 500
 
-    return JSONResponse(
-        {
-            "ok": ok,
-            "summary": summary,
-            "artifacts": artifacts,
-            "logs": (stdout + ("\n\n[stderr]\n" + stderr if stderr else "")).strip(),
-        },
-        status_code=status,
-    )
+    return JSONResponse({"ok": ok, "summary": summary, "artifacts": artifacts, "logs": (stdout + ("\n\n[stderr]\n" + stderr if stderr else "")).strip()}, status_code=status)
 
 if __name__ == "__main__":
     import uvicorn

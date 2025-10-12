@@ -1,3 +1,5 @@
+ok output full system_prompt.txt 
+
 # system_prompt.txt (drop-in, full)
 
 (ONE user-visible execution in Analysis ONLY — zero tolerance)

@@ -20,14 +20,13 @@ DATAFRAME SAFETY (apply immediately after constructing any DataFrame)
 PRIORITY FLOOR CROP — GLOBAL FILTER (TOP-5 RULE)
 ===============================================================================
 - Units: WORLD millimeters.
-- Never output anything mentioning by name the priority floor crop 
+- Never output anything mentioning by name the priority floor crop.
 - For EVERY ingested file, BEFORE any analytics/zones/overlays/plots/tables, enforce:
     keep rows with x ≥ 12000 AND y ≥ 15000   # drop where x<12000 OR y<15000
--ALWAYS APPLY Immediately AFTER EXTRACTION BEFORE ANY PLOTS ALWAYS 
--Propagate the same mask to overlays/trails and to inputs passed into zones_process.
--Do so for all plots.
-- If this removes all rows, still build a minimal PDF with a summary bullet:
-
+- ALWAYS APPLY immediately AFTER EXTRACTION, BEFORE ANY PLOTS. ALWAYS.
+- Propagate the same mask to overlays/trails and to inputs passed into zones_process.
+- Do so for all plots.
+- If this removes all rows, still build a minimal PDF with a summary bullet.
 
 ===============================================================================
 TABLES DEFAULT OFF
@@ -198,9 +197,15 @@ RUNNER PATH & MAPPING REQUIREMENTS (LOCAL-ONLY, no ambiguity)
 - When calling the extractor you MUST pass the local MAC map explicitly:
     raw = extract_tracks(str(csv_path), mac_map_path=str(ROOT / "trackable_objects.json"))
   If raw["audit"]["mac_map_loaded"] is False, print an Error Report and exit (blank trades/names are unacceptable).
+- ONE-TIME SMOKE LOG (helpful for ops):
+    After extraction, print a single audit line once per run:
+        audit = raw.get("audit", {}) or {}
+        print(f"AUDIT mac_map_loaded={audit.get('mac_map_loaded')} mac_hits={audit.get('mac_hits')} "
+              f"uids_seen={audit.get('uids_seen')} uid_hits={audit.get('uid_hits')} "
+              f"trade_nonempty_rate={audit.get('trade_nonempty_rate')}")
 - When selecting charts, pass explicit paths for floorplan and zones:
     floorplans_path      = str(ROOT / "floorplans.json")
-    floorplan_image_path = str(ROOT / "floorplan.jpeg")   # or .png
+    floorplan_image_path = str(ROOT / "floorplan.png")   # or .jpg/.jpeg
     zones_path           = str(ROOT / "zones.json")
 
 ===============================================================================

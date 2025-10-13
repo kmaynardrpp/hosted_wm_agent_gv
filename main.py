@@ -255,7 +255,7 @@ def build_user_message(user_prompt: str, csv_paths: List[str], project_dir: Path
         "  if df.columns.duplicated().any(): df = df.loc[:, ~df.columns.duplicated()]\n"
         "  # NOTE: If GV needs a point ignore instead of a crop, this block should be replaced accordingly in the prompt.\n"
         "  xn = pd.to_numeric(df.get('x',''), errors='coerce'); yn = pd.to_numeric(df.get('y',''), errors='coerce')\n"
-        "  df = df.loc[(xn >= 12000) & (yn >= 15000)].copy()\n"
+        "  df = df.loc[~((xn == 5818) & (yn == 2877))].copy()\n"
         "  # Timestamp canon\n"
         "  src = df['ts_iso'] if 'ts_iso' in df.columns else (df['ts'] if 'ts' in df.columns else '')\n"
         "  df['ts_utc'] = pd.to_datetime(src, utc=True, errors='coerce')\n"

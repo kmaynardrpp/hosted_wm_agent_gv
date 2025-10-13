@@ -86,7 +86,7 @@ INGEST (ONLY PATH) + MAC MAP (MANDATORY) + AUDIT GUARD
         df = df.loc[:, ~df.columns.duplicated()]
 
 PRIORITY FLOOR FILTER
-- Default rule (global crop): KEEP ONLY rows with **x ≥ 12,000** AND **y ≥ 15,000** (world mm).
+- Default rule (global crop): KEEP ONLY rows with **x != 5818** AND **y != 2877** (world mm).
 - OVERRIDE (single-point ignore via env): if `IGNORE_X` AND `IGNORE_Y` are set, then drop ONLY the exact point (x==IGNORE_X AND y==IGNORE_Y) and DO NOT apply the crop.
 - Implement immediately after build of each per-file DataFrame and before any aggregation:
 
@@ -96,7 +96,7 @@ PRIORITY FLOOR FILTER
     if _ix and _iy:
         df = df.loc[~((xn == float(_ix)) & (yn == float(_iy)))].copy()
     else:
-        df = df.loc[(xn >= 12000) & (yn >= 15000)].copy()
+        df = df.loc[~((xn == 5818) & (yn == 2877))].copy()
 
 TIME (CANONICAL)
 - Create one analysis column:
@@ -389,3 +389,4 @@ FORBIDDEN
 
 ONE BLOCK RULE
 - Your reply MUST be one Python code block (no commentary outside). No Markdown fences in the output.
+1

@@ -1,20 +1,39 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState, useEffect } from "react";
+const API_BASE = import.meta.env.VITE_API_BASE || window.location.origin;
 
-// Always use same-origin in prod; allow override via Vite env only if set.
-const API_BASE = (import.meta.env.VITE_API_BASE && import.meta.env.VITE_API_BASE.trim())
-  ? import.meta.env.VITE_API_BASE.trim()
-  : window.location.origin;
+function formatTime(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const s = Math.floor(totalSeconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
 
 export default function App() {
-  const [messages, setMessages] = useState([]); // {role,text,artifacts?,logs?}
+  const [messages, setMessages] = useState([]);
   const [prompt, setPrompt] = useState("");
-  const [files, setFiles]   = useState([]);     // File[]
-  const [busy, setBusy]     = useState(false);
+  const [files, setFiles] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const inputRef = useRef(null);
-  const fileRef  = useRef(null);
+  const fileRef = useRef(null);
+
+  // Tick a simple elapsed timer whenever we're busy
+  useEffect(() => {
+    let id;
+    let start;
+    if (busy) {
+      start = Date.now();
+      setElapsed(0);
+      id = setInterval(() => {
+        setElapsed(Math.floor((Date.now() - start) / 1000));
+      }, 1000);
+    }
+    return () => {
+      if (id) clearInterval(id);
+    };
+  }, [busy]);
 
   const removeFile = (i) => setFiles((prev) => prev.filter((_, idx) => idx !== i));
-  const pickFiles  = () => fileRef.current?.click();
+  const pickFiles = () => fileRef.current?.click();
 
   const onDrop = useCallback((e) => {
     e.preventDefault();
@@ -26,36 +45,33 @@ export default function App() {
     const items = e.clipboardData?.items;
     if (!items) return;
     const pasted = [];
-    for (const it of items) {
+    for (const it of items)
       if (it.kind === "file") {
         const f = it.getAsFile();
         if (f) pasted.push(f);
       }
-    }
     if (pasted.length) setFiles((p) => [...p, ...pasted]);
   }, []);
 
   const send = useCallback(async () => {
     const trimmed = prompt.trim();
     if (!trimmed || busy) return;
+
+    // Clear the chat window for a fresh run
+    setMessages([{ role: "user", text: trimmed }]);
     setBusy(true);
-    setMessages((prev) => [...prev, { role: "user", text: trimmed }]);
 
     try {
       const fd = new FormData();
       fd.append("prompt", trimmed);
       for (const f of files) fd.append("files", f, f.name);
 
-      const res = await fetch(`${API_BASE}/api/run`, {
-        method: "POST",
-        body: fd,
-      });
-
+      const res = await fetch(`${API_BASE}/api/run`, { method: "POST", body: fd });
       if (!res.ok) {
-        const t = await res.text().catch(() => "");
+        const t = await res.text();
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", text: `Error: ${res.status}. ${t || "Request failed."}` },
+          { role: "assistant", text: `Error: ${res.status}. ${t}` },
         ]);
       } else {
         const data = await res.json();
@@ -72,10 +88,11 @@ export default function App() {
     } catch (e) {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", text: `Network error: ${e?.message || e}` },
+        { role: "assistant", text: `Network error: ${e.message || e}` },
       ]);
     } finally {
       setBusy(false);
+      setElapsed(0);
       setPrompt("");
       setFiles([]);
       inputRef.current?.focus();
@@ -97,9 +114,7 @@ export default function App() {
             <div className="w-8 h-8 rounded-xl bg-blue-600" />
             <h1 className="font-semibold">Position Analysis Web Chat</h1>
           </div>
-          <a className="text-sm text-blue-600 hover:underline" href={`${API_BASE}/api/ping`} target="_blank" rel="noreferrer">
-            API ping
-          </a>
+          <a className="text-sm text-blue-600 hover:underline" href={`${API_BASE}/docs`} target="_blank">API docs</a>
         </div>
       </header>
 
@@ -109,19 +124,29 @@ export default function App() {
         onDrop={onDrop}
       >
         <div className="space-y-6">
-          {/* Messages */}
           <div className="space-y-4">
-            {messages.map((m, i) => <MessageBubble key={i} {...m} apiBase={API_BASE} />)}
+            {messages.map((m, i) => (
+              <MessageBubble key={i} {...m} apiBase={API_BASE} />
+            ))}
           </div>
 
-          {/* Composer */}
           <div className="border rounded-2xl shadow-soft bg-white">
             <div className="p-3 flex flex-wrap gap-2">
               {files.map((f, i) => (
-                <span key={i} className="inline-flex items-center gap-2 text-xs px-2 py-1 bg-gray-100 rounded-full">
-                  <svg width="14" height="14" viewBox="0 0 24 24"><path fill="currentColor" d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/></svg>
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-2 text-xs px-2 py-1 bg-gray-100 rounded-full"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"
+                    />
+                  </svg>
                   {f.name}
-                  <button onClick={() => removeFile(i)} className="hover:text-red-600">×</button>
+                  <button onClick={() => removeFile(i)} className="hover:text-red-600">
+                    ×
+                  </button>
                 </span>
               ))}
             </div>
@@ -132,7 +157,11 @@ export default function App() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder={busy ? "Running…" : "Type a prompt… (Shift+Enter for newline)"}
+                placeholder={
+                  busy
+                    ? `⏱ ${formatTime(elapsed)}`
+                    : "Type a prompt… (Shift+Enter for newline)"
+                }
                 className="w-full h-28 resize-none outline-none p-3 rounded-xl bg-gray-50 focus:bg-white"
                 disabled={busy}
               />
@@ -143,9 +172,18 @@ export default function App() {
                     type="file"
                     multiple
                     className="hidden"
-                    onChange={(e) => setFiles((p) => [...p, ...Array.from(e.target.files || [])])}
+                    onChange={(e) =>
+                      setFiles((p) => [
+                        ...p,
+                        ...Array.from(e.target.files || []),
+                      ])
+                    }
                   />
-                  <button onClick={pickFiles} className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200">
+                  <button
+                    onClick={pickFiles}
+                    className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200"
+                    disabled={busy}
+                  >
                     Attach files
                   </button>
                   <span className="text-xs text-gray-500">Drop or paste files, too</span>
@@ -153,9 +191,10 @@ export default function App() {
                 <button
                   onClick={send}
                   disabled={busy || !prompt.trim()}
-                  className="px-4 py-2 rounded-xl bg-blue-600 text-white disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-blue-600 text-white disabled:opacity-50 min-w-[92px] text-center"
+                  aria-live="polite"
                 >
-                  {busy ? "Running…" : "Send"}
+                  {busy ? `⏱ ${formatTime(elapsed)}` : "Send"}
                 </button>
               </div>
             </div>
@@ -164,7 +203,7 @@ export default function App() {
       </main>
 
       <footer className="text-xs text-center text-gray-500 py-6">
-        Same-origin API: <code>{API_BASE}</code>
+        Local-only • Displays PDFs & PNGs from your generator
       </footer>
     </div>
   );
@@ -174,11 +213,17 @@ function MessageBubble({ role, text, artifacts = [], logs = "", apiBase }) {
   const isUser = role === "user";
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-[85%] w-fit bubble px-4 py-3 shadow-soft ${isUser ? "bg-blue-600 text-white" : "bg-white border"}`}>
+      <div
+        className={`max-w-[85%] w-fit bubble px-4 py-3 shadow-soft ${
+          isUser ? "bg-blue-600 text-white" : "bg-white border"
+        }`}
+      >
         <div className="whitespace-pre-wrap text-sm">{text}</div>
         {!isUser && artifacts?.length > 0 && (
           <div className="mt-3 space-y-3">
-            {artifacts.map((a, i) => <Artifact key={i} a={a} apiBase={apiBase} />)}
+            {artifacts.map((a, i) => (
+              <Artifact key={i} a={a} apiBase={apiBase} />
+            ))}
           </div>
         )}
         {!isUser && logs && (
@@ -202,7 +247,9 @@ function Artifact({ a, apiBase }) {
       <div className="border rounded-lg overflow-hidden">
         <div className="text-xs px-3 py-2 bg-gray-100 flex items-center justify-between">
           <span>{filename}</span>
-          <a href={url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Open</a>
+          <a href={url} target="_blank" className="text-blue-600 hover:underline">
+            Open
+          </a>
         </div>
         <iframe src={`${url}#toolbar=0`} className="art-iframe" />
       </div>
@@ -212,7 +259,9 @@ function Artifact({ a, apiBase }) {
     <div className="border rounded-lg overflow-hidden">
       <div className="text-xs px-3 py-2 bg-gray-100 flex items-center justify-between">
         <span>{filename}</span>
-        <a href={url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Open</a>
+        <a href={url} target="_blank" className="text-blue-600 hover:underline">
+          Open
+        </a>
       </div>
       {/* eslint-disable-next-line jsx-a11y/alt-text */}
       <img src={url} alt={filename} className="max-h-[480px] w-auto" />

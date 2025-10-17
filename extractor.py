@@ -5,7 +5,9 @@
 # Populates:
 #   - trackable / trackable_uid via local trackable_objects.json (MAC and UID)
 #   - trade from FINAL trackable (regex/prefix canonicalization)
-#   - ts_utc (ISO 'Z'), ts_iso (alias), ts_short ("MM-DDHH:MM")
+#   - ts_utc (ISO 'Z'), ts_iso (alias), ts_short ("MM-DD HH:MM")
+#   - zone_name normalization (STRICT mapping to canonical names like "Sales Floor",
+#     "Vestibule", "Receiving", "FET", ...), and filters out Trailer rows
 #
 # Returns: {"rows": List[dict], "audit": dict}
 # ------------------------------------------------------------------------------
@@ -16,29 +18,28 @@ import os
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 
 
 # =========================== ROOT resolution (LOCAL) ===========================
-
 def _resolve_root() -> Path:
-    root_env = os.environ.get("INFOZONE_ROOT", "").strip()
-    root = Path(root_env).resolve() if root_env else None
-    if not root or not root.exists():
-        root = Path(__file__).resolve().parent
-    if not root or not root.exists():
-        root = Path.cwd().resolve()
-    return root
+    # Hosted (Docker): INFOZONE_ROOT is typically /app
+    v = os.environ.get("INFOZONE_ROOT", "").strip()
+    if v:
+        p = Path(v).resolve()
+        if p.exists():
+            return p
+    p = Path(__file__).resolve().parent
+    return p if p.exists() else Path.cwd().resolve()
 
 
 ROOT = _resolve_root()
-EXTRACTOR_SIGNATURE = "extractor/v4-mac+uid-safe-name"
+EXTRACTOR_SIGNATURE = "extractor/v7-mac-guess+uid-safe-name+zone-map-strict"
 
 
 # ============================== MAC/UID map (LOCAL) ============================
-
 def _norm_mac(s: Optional[str]) -> str:
     if not s:
         return ""
@@ -48,17 +49,15 @@ def _norm_mac(s: Optional[str]) -> str:
 def _load_maps(mac_map_path: Optional[str | os.PathLike] = None) -> tuple[Dict[str, Dict[str, str]], Dict[str, Dict[str, str]]]:
     """
     Returns (mac_map, uid_map) where keys are normalized MAC or raw UID.
-    Accepts either:
-      { "trackable_objects": [ {mac_address,name,uid}, ... ] }  OR
-      { mac_or_uid: { name, uid }, ... }    # keyed dict
+    Search order:
+      1) explicit mac_map_path
+      2) ROOT/trackable_objects.json
+      3) CWD/trackable_objects.json
     """
     candidates: List[Path] = []
     if mac_map_path:
         candidates.append(Path(mac_map_path))
-    candidates.extend([
-        ROOT / "trackable_objects.json",
-        Path.cwd() / "trackable_objects.json",
-    ])
+    candidates.extend([ROOT / "trackable_objects.json", Path.cwd() / "trackable_objects.json"])
 
     mac_map: Dict[str, Dict[str, str]] = {}
     uid_map: Dict[str, Dict[str, str]] = {}
@@ -69,7 +68,6 @@ def _load_maps(mac_map_path: Optional[str | os.PathLike] = None) -> tuple[Dict[s
                 continue
             data = json.loads(p.read_text(encoding="utf-8", errors="ignore"))
             items = data.get("trackable_objects") or data.get("objects") or data
-
             if isinstance(items, list):
                 for it in items:
                     mac = _norm_mac(it.get("mac") or it.get("mac_address"))
@@ -90,17 +88,14 @@ def _load_maps(mac_map_path: Optional[str | os.PathLike] = None) -> tuple[Dict[s
                         mac_map[mac] = {"name": name, "uid": uid}
                     if uid:
                         uid_map[uid] = {"name": name, "uid": uid}
-            # Stop at the first file that gave us data
             if mac_map or uid_map:
                 break
         except Exception:
             continue
-
     return mac_map, uid_map
 
 
 # ============================== Trade inference ===============================
-
 _TRADE_REGEX = [
     (re.compile(r"\bcarp(enter|entry|entry_\d+)?\b|carpentr(y)?", re.I), "carpentry"),
     (re.compile(r"\belectric(ians?|ian)?\b|\belec\b|\belectric\b", re.I), "electrician"),
@@ -118,7 +113,6 @@ _TRADE_REGEX = [
     (re.compile(r"\bems\b", re.I), "ems"),
     (re.compile(r"\bsteel\b", re.I), "steel"),
 ]
-
 _TRADE_PREFIX_MAP = {
     "carpentry":"carpentry","carpenter":"carpentry","carp":"carpentry",
     "electrician":"electrician","electric":"electrician","elec":"electrician",
@@ -136,7 +130,6 @@ _TRADE_PREFIX_MAP = {
     "ems":"ems",
     "steel":"steel",
 }
-
 def _infer_trade_from_trackable(label: str) -> str:
     if not label:
         return ""
@@ -150,35 +143,81 @@ def _infer_trade_from_trackable(label: str) -> str:
     return ""
 
 
-# ============================ CSV reading helpers =============================
+# ============================ Zone normalization (STRICT) =====================
+# Canonical mapping list (case-insensitive)
+_ZONE_MAP: List[Tuple[re.Pattern, str]] = [
+    (re.compile(r"\b(100\s+gr\s+)?sales\s+floor\b", re.I), "Sales Floor"),
+    (re.compile(r"\bvestibule\b", re.I), "Vestibule"),
+    (re.compile(r"\bfet\b", re.I), "FET"),
+    (re.compile(r"\bpersonnel\b", re.I), "Personnel"),
+    (re.compile(r"\bpharmacy\b", re.I), "Pharmacy"),
+    (re.compile(r"\b(restroom|customer\s+restroom)s?\b", re.I), "Restroom"),
+    (re.compile(r"\bbreak\s*room\b|\bbreakroom\b", re.I), "Breakroom"),
+    (re.compile(r"\bpickup\b", re.I), "Pickup"),
+    (re.compile(r"\bdeli\b", re.I), "Deli"),
+    (re.compile(r"\breceiving\b", re.I), "Receiving"),
+    (re.compile(r"\btrailer\b", re.I), "Trailer"),  # will be filtered out after normalization
+]
+# Stop words for fallback keyword extraction
+_ZONE_FALLBACK_STOP = {
+    "zone","area","aisle","hall","hallway","bay","dock","office",
+    "department","dept","section","room","floor","gm","gr","store",
+    "backroom","front","front-end","pickup","storage","information","active","inactive"
+}
 
+def _desired_zone_display(raw: str) -> str:
+    """
+    Map freeform zone strings to target display.
+    Rules:
+      1) First match any known canonical zones in _ZONE_MAP (case-insensitive).
+      2) Else strip leading "Zone <num> - " and numeric noise.
+      3) If "Sales" and "Floor" both present, return "Sales Floor".
+      4) Else try to find one of the canonical targets inside the cleaned string.
+      5) Else return the last meaningful word (titlecased) as a fallback.
+    """
+    s = str(raw or "").strip()
+    if not s:
+        return ""
+    # direct mapping
+    for pat, display in _ZONE_MAP:
+        if pat.search(s):
+            return display
+    # clean "Zone 11 - ..." or similar leading noise
+    tail = re.sub(r"^\s*zone\s+\d+(\.\d+)?\s*-\s*", "", s, flags=re.I)
+    tail = re.sub(r"^\s*(\d{1,4}(\.\d+)?(\s+[A-Z]{2,})?\s*)+", "", tail).strip()
+    if not tail:
+        return ""
+    # joined text for quick checks
+    joined = " ".join(re.findall(r"[A-Za-z]+", tail)).title()
+    if "Sales" in joined and "Floor" in joined:
+        return "Sales Floor"
+    # look for any target token inside the cleaned text
+    for target in ["Vestibule","Personnel","Pharmacy","Breakroom","Receiving","Deli","Restroom","Pickup","FET"]:
+        if re.search(fr"\b{target}\b", joined, flags=re.I):
+            return target
+    # else pick the last meaningful word
+    words = re.findall(r"[A-Za-z]+", tail)
+    words = [w for w in words if w.lower() not in _ZONE_FALLBACK_STOP]
+    return (words[-1].title() if words else tail.title())
+
+
+# ============================ CSV reading helpers =============================
 def _read_csv_comma(csv_path: str, row_limit: Optional[int]) -> pd.DataFrame:
     for enc in ("utf-8", "latin-1"):
         try:
             df = pd.read_csv(
-                csv_path,
-                sep=",",
-                header=0,
-                dtype=str,
-                engine="python",
-                on_bad_lines="skip",
-                comment="#",
-                encoding=enc,
-                na_filter=False,
-            )
-            break
+                csv_path, sep=",", header=0, dtype=str, engine="python",
+                on_bad_lines="skip", comment="#", encoding=enc, na_filter=False,
+            ); break
         except Exception:
             df = None
     if df is None:
         df = pd.read_csv(csv_path, sep=None, header=0, dtype=str, engine="python",
                          on_bad_lines="skip", comment="#", na_filter=False)
-
     if row_limit and len(df) > row_limit:
         df = df.iloc[:row_limit, :].copy()
-
     if df.columns.duplicated().any():
         df = df.loc[:, ~df.columns.duplicated()]
-
     return df
 
 
@@ -188,6 +227,7 @@ def _find_col(df: pd.DataFrame, candidates: List[str]) -> Optional[str]:
         c = lower.get(name.lower())
         if c:
             return c
+    # contains pass
     for c in df.columns:
         lc = c.lower()
         for name in candidates:
@@ -195,36 +235,26 @@ def _find_col(df: pd.DataFrame, candidates: List[str]) -> Optional[str]:
                 return c
     return None
 
+_MAC_SHAPED = re.compile(r"^(?:[0-9A-Fa-f]{2}([:-]?)){5}[0-9A-Fa-f]{2}$|^[0-9A-Fa-f]{12}$")
 
-def _choose_trackable_source(cols: List[str], zone_present: bool) -> Optional[str]:
+def _guess_mac_col_by_pattern(df: pd.DataFrame) -> Optional[str]:
     """
-    Choose a safe *name* column.
-    - Prefer exact name fields.
-    - Never pick columns containing 'zone', 'area', 'region', 'id', 'uid'.
-    - Only accept bare 'name' if no zone-like column exists.
+    If we didn't find a MAC column by name, look for one by VALUE shape.
+    Scans columns and picks the first where ≥5% of non-empty samples look like a MAC.
     """
-    lower = {c.lower(): c for c in cols}
-    exact_pref = [
-        "trackable", "trackable_name", "device_name", "tag_name",
-        "asset_name", "display_name"
-    ]
-    for nm in exact_pref:
-        c = lower.get(nm)
-        if c:
-            return c
-    if not zone_present:
-        c = lower.get("name")
-        if c:
-            return c
+    cols = list(df.columns)
     for c in cols:
-        lc = c.lower()
-        if lc.endswith("_name") and not any(b in lc for b in ("zone", "area", "region", "id", "uid")):
+        s = df[c].astype(str)
+        s = s[s.str.len() > 0].head(4000)  # cheap sample
+        if s.empty:
+            continue
+        hit = (s.str.match(_MAC_SHAPED)).mean()
+        if hit >= 0.05:  # 5% heuristic
             return c
     return None
 
 
 # ================================ Public API ==================================
-
 def extract_tracks(csv_path: str,
                    mac_map_path: Optional[str | os.PathLike] = None,
                    row_limit: Optional[int] = None,
@@ -240,17 +270,29 @@ def extract_tracks(csv_path: str,
             df[c] = df[c].astype(str)
 
     # Identify columns
-    col_zone = _find_col(df, ["zone_name", "zone", "area", "region"])
-    col_mac  = _find_col(df, ["mac", "mac_address", "macaddr", "bt_mac"])
-    col_uidc = _find_col(df, ["trackable_uid", "uid", "user_id", "device_id", "tag_id"])
-    col_ts   = _find_col(df, ["ts_utc", "ts", "timestamp", "time", "datetime", "date_time"])
+    mac_aliases = [
+        "mac","mac_address","macaddr","bt_mac","ble_mac",
+        "bluetooth_mac","bdaddr","btaddr","addr","address","bleaddress","ble_address",
+    ]
+    col_mac  = _find_col(df, mac_aliases)
+    if not col_mac:
+        col_mac = _guess_mac_col_by_pattern(df)
+
+    uid_aliases = ["trackable_uid","uid","user_id","device_id","tag_id","entity_id","badge_id","tag_uid"]
+    col_uidc = _find_col(df, uid_aliases)
+
+    ts_aliases  = ["ts_utc","ts","timestamp","time","datetime","date_time"]
+    col_ts   = _find_col(df, ts_aliases)
+
+    # zone name source (if present) — normalize to canonical names and filter Trailer
+    col_zone_src = _find_col(df, ["zone_name","zone","area","area_name","region","location"])
 
     # Canonical outputs
     if col_uidc is None:
         df["trackable_uid"] = ""
         col_uidc = "trackable_uid"
 
-    col_trade = _find_col(df, ["trade", "role", "craft", "discipline"])
+    col_trade = _find_col(df, ["trade","role","craft","discipline"])
     if col_trade is None:
         df["trade"] = ""
         col_trade = "trade"
@@ -266,17 +308,38 @@ def extract_tracks(csv_path: str,
             iso = ts_parsed[mask].dt.strftime("%Y-%m-%dT%H:%M:%SZ")
             df.loc[mask, "ts_utc"] = iso
             df.loc[mask, "ts_iso"] = iso
-            df.loc[mask, "ts_short"] = ts_parsed[mask].dt.strftime("%m-%d|%H:%M")
+            df.loc[mask, "ts_short"] = ts_parsed[mask].dt.strftime("%m-%d %H:%M")
 
     # Load maps (LOCAL)
     mac_map, uid_map = _load_maps(mac_map_path)
 
     # Normalized keys
-    mac_norm = df[col_mac].map(_norm_mac) if col_mac else pd.Series([""] * len(df), index=df.index)
+    if col_mac:
+        mac_norm = df[col_mac].map(_norm_mac)
+    else:
+        mac_norm = pd.Series([""] * len(df), index=df.index)
+
     uid_vals = df[col_uidc].astype(str) if col_uidc else pd.Series([""] * len(df), index=df.index)
 
     # Safe source column for names (never zone/area/region/id/uid)
-    col_trackable_src = _choose_trackable_source(list(df.columns), zone_present=(col_zone is not None))
+    def _choose_trackable_source(cols: List[str], zone_present: bool) -> Optional[str]:
+        lower = {c.lower(): c for c in cols}
+        exact_pref = ["trackable","trackable_name","device_name","tag_name","asset_name","display_name"]
+        for nm in exact_pref:
+            c = lower.get(nm)
+            if c:
+                return c
+        if not zone_present:
+            c = lower.get("name")
+            if c:
+                return c
+        for c in cols:
+            lc = c.lower()
+            if lc.endswith("_name") and not any(b in lc for b in ("zone","area","region","id","uid")):
+                return c
+        return None
+
+    col_trackable_src = _choose_trackable_source(list(df.columns), zone_present=(col_zone_src is not None))
 
     # Build mapped name/uid from MAC and UID
     def _map_from_mac(uid_series=False) -> pd.Series:
@@ -300,7 +363,7 @@ def extract_tracks(csv_path: str,
 
     # Final canonical 'trackable':
     # priority = safe source column (non-blank) → MAC map → UID map
-    if col_trackable_src and not any(k in col_trackable_src.lower() for k in ("zone", "area", "region", "id", "uid")):
+    if col_trackable_src and not any(k in col_trackable_src.lower() for k in ("zone","area","region","id","uid")):
         cur = df[col_trackable_src].astype(str).str.strip()
     else:
         cur = pd.Series([""] * len(df), index=df.index, dtype="object")
@@ -321,8 +384,25 @@ def extract_tracks(csv_path: str,
     if need.any():
         df.loc[need, col_trade] = df.loc[need, "trackable"].map(_infer_trade_from_trackable).fillna("")
 
-    # Rows + audit
+    # ---- Zone normalization & Trailer filtering (STRICT) ----
+    if col_zone_src:
+        znorm = df[col_zone_src].map(_desired_zone_display)
+        if col_zone_src != "zone_name":
+            df["zone_name"] = znorm
+        else:
+            df[col_zone_src] = znorm
+        # Remove any Trailer rows after normalization
+        mask_trailer = df["zone_name"].str.contains(r"\bTrailer\b", case=False, na=False)
+        removed_trailer = int(mask_trailer.sum())
+        if removed_trailer:
+            df = df.loc[~mask_trailer].copy()
+    else:
+        removed_trailer = 0
+
+    # Rows → list-of-dicts
     out_rows = df.to_dict(orient="records")
+
+    # Audit
     macs_seen = int((mac_norm != "").sum())
     mac_hits = int(sum(1 for m in mac_norm if m and m in mac_map))
     uids_seen = int((uid_vals.astype(bool)).sum())
@@ -340,9 +420,11 @@ def extract_tracks(csv_path: str,
         "uids_seen": uids_seen,
         "uid_hits": uid_hits,
         "rows_total": int(len(df)),
+        "rows_removed_trailer": removed_trailer,
         "columns_detected": list(map(str, df.columns.tolist())),
+        "mac_col_selected": col_mac or "",
         "trade_nonempty_rate": round(trade_nonempty_rate, 4),
-        "notes": "trackable from safe source or MAC/UID maps; trade inferred from final trackable; ts_utc is canonical.",
+        "notes": "zone_name normalized to canonical display; Trailer rows removed; trackable from safe/MAC/UID; ts_utc canonical.",
     }
 
     return {"rows": out_rows, "audit": audit}

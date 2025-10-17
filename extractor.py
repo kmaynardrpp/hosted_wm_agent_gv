@@ -6,8 +6,8 @@
 #   - trackable / trackable_uid via local trackable_objects.json (MAC and UID)
 #   - trade from FINAL trackable (regex/prefix canonicalization)
 #   - ts_utc (ISO 'Z'), ts_iso (alias), ts_short ("MM-DD HH:MM")
-#   - zone_name normalization (STRICT mapping to canonical names like "Sales Floor",
-#     "Vestibule", "Receiving", "FET", ...), and filters out Trailer rows.
+#   - zone_name normalization to canonical labels ("Sales Floor", "Breakroom", "Receiving", "FET", ...),
+#     with polygon-based classification when only UIDs are present; then filter Trailer rows.
 #
 # Returns: {"rows": List[dict], "audit": dict}
 # ------------------------------------------------------------------------------
@@ -33,7 +33,7 @@ def _resolve_root() -> Path:
     return p if p.exists() else Path.cwd().resolve()
 
 ROOT = _resolve_root()
-EXTRACTOR_SIGNATURE = "extractor/v7-mac-guess+uid-safe-name+zone-map-strict"
+EXTRACTOR_SIGNATURE = "extractor/v8-mac-uid+zone-canon+polyclass-no-trailer"
 
 # ============================== MAC/UID map (LOCAL) ============================
 def _norm_mac(s: Optional[str]) -> str:
@@ -130,6 +130,7 @@ def _infer_trade_from_trackable(label: str) -> str:
     return ""
 
 # ============================ Zone normalization (STRICT) =====================
+# Canonical string mapping (contains checks, case-insensitive)
 _ZONE_MAP: List[Tuple[re.Pattern, str]] = [
     (re.compile(r"\b(100\s+gr\s+)?sales\s+floor\b", re.I), "Sales Floor"),
     (re.compile(r"\bvestibule\b", re.I), "Vestibule"),
@@ -148,7 +149,6 @@ _ZONE_FALLBACK_STOP = {
     "department","dept","section","room","floor","gm","gr","store",
     "backroom","front","front-end","pickup","storage","information","active","inactive"
 }
-
 def _desired_zone_display(raw: str) -> str:
     s = str(raw or "").strip()
     if not s:
@@ -171,7 +171,7 @@ def _desired_zone_display(raw: str) -> str:
     words = [w for w in re.findall(r"[A-Za-z]+", tail) if w.lower() not in _ZONE_FALLBACK_STOP]
     return (words[-1].title() if words else tail.title())
 
-# --- Load zone UID->Name lookup so we can map UIDs to names before normalization
+# UID→name lookup from zones.json (if UIDs match)
 def _load_zone_name_lookup(zones_path: Optional[str | os.PathLike] = None) -> Dict[str, str]:
     candidates: List[Path] = []
     if zones_path:
@@ -183,18 +183,84 @@ def _load_zone_name_lookup(zones_path: Optional[str | os.PathLike] = None) -> Di
                 continue
             data = json.loads(p.read_text(encoding="utf-8", errors="ignore"))
             zones = data.get("zones") or []
-            lookup: Dict[str, str] = {}
+            mp: Dict[str, str] = {}
             for z in zones:
                 uid = str(z.get("uid", "") or "")
                 name = str(z.get("name", "") or "")
                 if uid and name:
-                    # store canonical display for that UID
-                    lookup[uid] = _desired_zone_display(name)
-            if lookup:
-                return lookup
+                    mp[uid] = name
+            if mp:
+                return mp
         except Exception:
             continue
     return {}
+
+# Polygon-based classification fallback (when only UIDs or nothing is present)
+def _classify_by_polygon(df: pd.DataFrame,
+                         zones_path: Optional[str | os.PathLike] = None) -> pd.Series:
+    """
+    Return a Series of canonical zone display names by classifying (x,y)
+    into polygons from zones.json. Empty string if no hit.
+    """
+    # Lazy import; zones_process is already in repo
+    try:
+        from zones_process import load_zones
+        import numpy as _np
+        try:
+            from matplotlib.path import Path as _MPPath  # fast point-in-poly
+            have_path = True
+        except Exception:
+            have_path = False
+    except Exception:
+        return pd.Series([""] * len(df), index=df.index, dtype="object")
+
+    zones = load_zones(zones_path or None, only_active=True)
+    if not zones:
+        return pd.Series([""] * len(df), index=df.index, dtype="object")
+
+    # Prepare points
+    xs = pd.to_numeric(df.get("x", ""), errors="coerce")
+    ys = pd.to_numeric(df.get("y", ""), errors="coerce")
+    mask = xs.notna() & ys.notna()
+    out = pd.Series([""] * len(df), index=df.index, dtype="object")
+    if not mask.any():
+        return out
+
+    pts = _np.c_[xs[mask].to_numpy(), ys[mask].to_numpy()]
+
+    if have_path:
+        # Iterate zones; first hit wins
+        for z in zones:
+            poly = z.get("polygon")
+            if poly is None or len(poly) < 3:
+                continue
+            path = _MPPath(poly)
+            inside = path.contains_points(pts)
+            if inside.any():
+                name = _desired_zone_display(z.get("name", ""))
+                out.loc[mask.index[mask].to_numpy()[inside]] = name
+    else:
+        # Fallback: simple ray-casting (slower)
+        def _pip(point, poly):
+            x, y = point
+            inside = False
+            n = len(poly)
+            for i in range(n):
+                x1, y1 = poly[i]
+                x2, y2 = poly[(i + 1) % n]
+                if ((y1 > y) != (y2 > y)) and (x < (x2 - x1) * (y - y1) / (y2 - y1 + 1e-12) + x1):
+                    inside = not inside
+            return inside
+        for idx, (xv, yv) in zip(mask.index[mask], pts):
+            for z in zones:
+                poly = z.get("polygon")
+                if poly is None or len(poly) < 3:
+                    continue
+                if _pip((xv, yv), poly):
+                    out.loc[idx] = _desired_zone_display(z.get("name", ""))
+                    break
+
+    return out
 
 # ============================ CSV reading helpers =============================
 def _read_csv_comma(csv_path: str, row_limit: Optional[int]) -> pd.DataFrame:
@@ -262,7 +328,8 @@ def extract_tracks(csv_path: str,
     col_uidc = _find_col(df, uid_aliases)
     ts_aliases  = ["ts_utc","ts","timestamp","time","datetime","date_time"]
     col_ts   = _find_col(df, ts_aliases)
-    col_zone_src = _find_col(df, ["zone_name","zone","area","area_name","region","location"])
+    # Zone-like source (textual or UID-ish)
+    col_zone_src = _find_col(df, ["zone_name","zone","area","area_name","region","location","area_uid"])
 
     # Canonical outputs
     if col_uidc is None:
@@ -293,7 +360,7 @@ def extract_tracks(csv_path: str,
     mac_norm = df[col_mac].map(_norm_mac) if col_mac else pd.Series([""] * len(df), index=df.index)
     uid_vals = df[col_uidc].astype(str) if col_uidc else pd.Series([""] * len(df), index=df.index)
 
-    # Choose a safe name source (never zone/area/region/id/uid)
+    # Choose a safe trackable name source
     def _choose_trackable_source(cols: List[str], zone_present: bool) -> Optional[str]:
         lower = {c.lower(): c for c in cols}
         exact_pref = ["trackable","trackable_name","device_name","tag_name","asset_name","display_name"]
@@ -313,14 +380,13 @@ def extract_tracks(csv_path: str,
 
     col_trackable_src = _choose_trackable_source(list(df.columns), zone_present=(col_zone_src is not None))
 
-    # Build mapped name/uid from MAC and UID
+    # Pull trackable name/uid from maps if missing
     def _map_from_mac(uid_series=False) -> pd.Series:
         vals = []
         for mac in mac_norm.tolist():
             m = mac_map.get(mac) if mac else None
             vals.append((m.get("uid") if uid_series else m.get("name")) if m else "")
         return pd.Series(vals, index=df.index, dtype="object")
-
     def _map_from_uid(uid_series=False) -> pd.Series:
         vals = []
         for u in uid_vals.tolist():
@@ -333,7 +399,6 @@ def extract_tracks(csv_path: str,
     mapped_name_uid = _map_from_uid(uid_series=False)
     mapped_uid_uid  = _map_from_uid(uid_series=True)
 
-    # Final canonical 'trackable'
     if col_trackable_src and not any(k in col_trackable_src.lower() for k in ("zone","area","region","id","uid")):
         cur = df[col_trackable_src].astype(str).str.strip()
     else:
@@ -342,7 +407,6 @@ def extract_tracks(csv_path: str,
     candidate = candidate.where(candidate.ne(""), mapped_name_uid)
     df["trackable"] = candidate.fillna("")
 
-    # Ensure UID column
     curu = df[col_uidc].astype(str).str.strip()
     fillu = curu.where(curu.ne(""), mapped_uid_mac)
     fillu = fillu.where(fillu.ne(""), mapped_uid_uid)
@@ -354,33 +418,35 @@ def extract_tracks(csv_path: str,
     if need.any():
         df.loc[need, col_trade] = df.loc[need, "trackable"].map(_infer_trade_from_trackable).fillna("")
 
-    # ---- Zone normalization & Trailer filtering (STRICT + UID guard) ----
+    # ---- Zone normalization with UID + polygon fallback; then drop Trailer ----
     removed_trailer = 0
+    df["zone_name"] = ""  # canonical output field
     if col_zone_src:
-        uid2name = _load_zone_name_lookup()  # map zone UID -> canonical name if available
-        raw_vals = df[col_zone_src].astype(str)
+        raw_zone = df[col_zone_src].astype(str).fillna("")
+        uid2name = _load_zone_name_lookup()  # may be empty if uids differ
+        UIDISH = re.compile(r"^[A-Za-z0-9_\-]{16,}$")  # looks like a UID (no spaces, long)
 
-        UIDISH = re.compile(r"^[A-Za-z0-9_\-]{16,}$")  # looks like a UID token (no spaces, long)
-        def _normalize_zone_value(v: str) -> str:
-            s = (v or "").strip()
+        # First pass: direct text normalize or UID→name normalize if UID matches zones.json
+        def _first_pass(s: str) -> str:
             if not s:
                 return ""
-            # If it's an exact UID we know, map to its human name first
             if s in uid2name:
                 return _desired_zone_display(uid2name[s])
-            # If it looks like a UID but we don't know it, DO NOT try to "normalize" (avoid 'Q')
             if UIDISH.match(s) and (" " not in s):
-                return s  # leave as-is
-            # Otherwise treat as a human label and normalize
+                # looks like a UID we don't know → leave blank for polygon classification
+                return ""
             return _desired_zone_display(s)
 
-        znorm = raw_vals.map(_normalize_zone_value)
-        if col_zone_src != "zone_name":
-            df["zone_name"] = znorm
-        else:
-            df[col_zone_src] = znorm
+        zone1 = raw_zone.map(_first_pass)
+        df["zone_name"] = zone1
 
-        # Filter Trailer rows (after normalization or UID mapping)
+        # Second pass: polygon classification for anything still blank
+        still_blank = df["zone_name"].eq("")
+        if still_blank.any():
+            zone_poly = _classify_by_polygon(df.loc[still_blank, ["x","y"]])
+            df.loc[still_blank, "zone_name"] = zone_poly
+
+        # Final: drop Trailer rows
         mask_trailer = df["zone_name"].str.contains(r"\bTrailer\b", case=False, na=False)
         removed_trailer = int(mask_trailer.sum())
         if removed_trailer:
@@ -411,7 +477,7 @@ def extract_tracks(csv_path: str,
         "columns_detected": list(map(str, df.columns.tolist())),
         "mac_col_selected": col_mac or "",
         "trade_nonempty_rate": round(trade_nonempty_rate, 4),
-        "notes": "zone_name normalized (UID-aware); Trailer rows removed; trackable from safe/MAC/UID; ts_utc canonical.",
+        "notes": "zone_name normalized (UID-aware, polygon fallback); Trailer rows removed; trackable from safe/MAC/UID; ts_utc canonical.",
     }
 
     return {"rows": out_rows, "audit": audit}

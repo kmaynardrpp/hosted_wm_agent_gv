@@ -22,17 +22,17 @@ except Exception:
 FALLBACK_MODELS = ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"]
 ENV_MODEL = os.environ.get("OPENAI_MODEL", "").strip()
 
-# Reasoning effort & output tokens
+# Reasoning effort & output tokens (YOUR NEW LIMITS KEPT)
 REASONING_EFFORT = os.environ.get(
     "IZ_REASONING_EFFORT",
     os.environ.get("OPENAI_REASONING_EFFORT", "medium")
 ).lower()
 MAX_OUTPUT_TOKENS = int(os.environ.get(
     "IZ_MAX_OUTPUT_TOKENS",
-    os.environ.get("OPENAI_MAX_OUTPUT_TOKENS", "24000")
+    os.environ.get("OPENAI_MAX_OUTPUT_TOKENS", "24000")  # default 24k
 ))
 
-# Size caps (trim large inputs to improve robustness/speed)
+# Size caps (YOUR NEW LIMITS KEPT)
 GUIDELINES_CAP = int(os.environ.get("IZ_GUIDELINES_CAP", "0") or "0")  # 0 = no cap
 CONTEXT_CAP    = int(os.environ.get("IZ_CONTEXT_CAP", "30000"))
 HELPER_CAP     = int(os.environ.get("IZ_HELPER_CAP", "30000"))
@@ -273,11 +273,24 @@ def build_user_message(user_prompt: str, csv_paths: List[str], project_dir: Path
         "  import pandas as pd\n"
         "  df = pd.DataFrame(raw.get('rows', []))\n"
         "  if df.columns.duplicated().any(): df = df.loc[:, ~df.columns.duplicated()]\n"
-        "  xn = pd.to_numeric(df.get('x',''), errors='coerce'); yn = pd.to_numeric(df.get('y',''), errors='coerce')\n"
-        "  # GV single-point ignore (drop ONLY x==5818 AND y==2877)\n"
-        "  df = df.loc[~((xn == 5818) & (yn == 2877))].copy()\n"
+        "\n"
+        "  # SAFE point ignore (GV): drop ONLY exact x==5818 AND y==2877; handle missing/empty gracefully\n"
+        "  def _safe_point_ignore(df):\n"
+        "      import pandas as pd\n"
+        "      if 'x' not in df.columns or 'y' not in df.columns:\n"
+        "          return df.copy()\n"
+        "      xn = pd.to_numeric(df['x'], errors='coerce')\n"
+        "      yn = pd.to_numeric(df['y'], errors='coerce')\n"
+        "      mask = ~((xn == 5818) & (yn == 2877))\n"
+        "      if not hasattr(mask, 'index') or mask.shape != df.index.shape:\n"
+        "          return df.copy()\n"
+        "      return df.loc[mask].copy()\n"
+        "  df = _safe_point_ignore(df)\n"
+        "\n"
+        "  # Timestamp canon\n"
         "  src = df['ts_iso'] if 'ts_iso' in df.columns else (df['ts'] if 'ts' in df.columns else '')\n"
         "  df['ts_utc'] = pd.to_datetime(src, utc=True, errors='coerce')\n"
+        "  # Required columns check (after first file)\n"
         "  cols = set(df.columns.astype(str))\n"
         "  if not ((('trackable' in cols) or ('trackable_uid' in cols)) and ('trade' in cols) and ('x' in cols) and ('y' in cols)):\n"
         "      print('Error Report:'); print('Missing required columns for analysis.'); print('Columns detected: ' + ','.join(df.columns.astype(str))); raise SystemExit(1)\n"
@@ -350,7 +363,7 @@ Requirements:
 - Resolve ROOT from INFOZONE_ROOT or __file__; OUT_DIR = INFOZONE_OUT_DIR or first CSV dir (mkdir -p).
 - If csv_paths is empty or contains directories, parse dates from the prompt and auto-select from ROOT/db using hyphen filenames with inclusive ranges and year=2025 when missing.
 - Import local helpers; save PDF/PNGs to OUT_DIR; print file:/// links exactly (use _print_links).
-- Per-file processing; GV point-ignore (drop ONLY x==5818 & y==2877); use dt.floor("h"); tables only if explicitly requested.
+- Per-file processing; GV point-ignore (drop ONLY x==5818 & y==2877) via _safe_point_ignore; use dt.floor("h"); tables only if explicitly requested.
 
 CSV INPUTS:
 {csv_lines}
@@ -402,7 +415,7 @@ def try_models_with_retries(client: OpenAI, models: List[str],
                     msg
                     + "\n\nREPAIR-STRUCTURE (MANDATORY):\n"
                     + "- Keep ROOT/out_dir/imports. Use DB auto-select (hyphen patterns), inclusive ranges, assume 2025; print 'SELECTED FROM DB:'.\n"
-                    + "- Include MAC-map audit guard + smoke log; GV point-ignore (drop ONLY x==5818 & y==2877); use ts_utc; dt.floor('h').\n"
+                    + "- Include MAC-map audit guard + smoke log; GV _safe_point_ignore (drop ONLY x==5818 & y==2877); use ts_utc; dt.floor('h').\n"
                     + "- Floorplan 'selected==1' selection; regex preflights; asset/DB sanity; safe _print_links.\n"
                     + "- The script MUST compile with compile(...,'exec').\n"
                     + f"- Structural issues to fix: {', '.join(issues)}\n"
@@ -435,10 +448,7 @@ def try_models_with_retries(client: OpenAI, models: List[str],
 
 def compile_with_retries(client: OpenAI, model: str, system_msg: str,
                          user_msg_full: str, code_text: str) -> Tuple[bool, str]:
-    """
-    Try to compile. If it fails, run up to COMPILE_RETRIES repair attempts.
-    Each attempt includes the broken code and demands a pure-syntax re-check.
-    """
+    """Compile; if it fails, run up to COMPILE_RETRIES syntax-repair attempts."""
     for attempt in range(1, COMPILE_RETRIES + 1):
         try:
             compile(code_text, "<generated>", "exec")
@@ -448,20 +458,19 @@ def compile_with_retries(client: OpenAI, model: str, system_msg: str,
             err_msg  = f"{e.msg} at line {e.lineno}: {err_line}"
             print(f"[{now_ts()}] [ERROR] Compile failed (attempt {attempt}/{COMPILE_RETRIES}): {err_msg}", file=sys.stderr)
 
-            # Send the broken code (capped) and demand a syntax audit
             broken_capped = _clip(code_text, REPAIR_CODE_CAP)
             repair_prompt = (
                 "MAIN PRIORITY: FIX THE PYTHON SCRIPT (COMPILATION MUST SUCCEED)\n"
-                "- Repair the following Python script WITHOUT changing behavior/IO.\n"
-                "- Perform a strict PYTHON SYNTAX AUDIT before returning:\n"
+                "- Repair WITHOUT changing behavior/IO.\n"
+                "- Strict PYTHON SYNTAX AUDIT before returning:\n"
                 "  • All 'if/elif/else/try/except/finally/for/while/def/class' end with ':'\n"
                 "  • Every block is indented; no empty blocks (use 'pass' if needed)\n"
                 "  • Balanced (), [], {}, and quotes; no unterminated f-strings\n"
                 "  • Every 'try:' has at least one 'except' or 'finally'\n"
                 "  • Regex named groups use (?P<a>) / (?P<b>) — NEVER '(?P>)'\n"
-                "  • Define and USE _print_links(pdf_path, png_paths) — no inline nested f-strings for links\n"
+                "  • Define & USE _print_links(pdf_path, png_paths) — no inline nested f-strings for links\n"
                 "  • Constants exist: ROOT, LOGO, FLOORJSON, ZONES_JSON, out_dir (no misspellings)\n"
-                "  • Keep DB auto-select (hyphen filenames), inclusive ranges, ASSUME 2025; MAC-map audit guard; GV point-ignore; safe _print_links\n"
+                "  • Keep DB auto-select (hyphen), inclusive ranges, ASSUME 2025; MAC-map guard; GV _safe_point_ignore; safe _print_links\n"
                 "  • Avoid utcnow(); if needed, use timezone-aware now\n"
                 "\n--- COMPILER ERROR ---\n"
                 f"{err_msg}\n"
@@ -470,8 +479,7 @@ def compile_with_retries(client: OpenAI, model: str, system_msg: str,
             )
             raw = responses_create_text(client, model, system_msg, user_msg_full + "\n\n" + repair_prompt)
             code_text = strip_fences(extract_code_block(raw))
-            # loop continues to re-compile on the next iteration
-
+    # final compile try
     try:
         compile(code_text, "<generated>", "exec")
         return True, code_text
@@ -516,7 +524,7 @@ def runtime_repair_loop(client: OpenAI, model: str, system_msg: str, user_msg_fu
             user_msg_full
             + "\n\n=== MAIN PRIORITY: FIX THE PYTHON SCRIPT ===\n"
             + "The following Python script failed at runtime. Do NOT change scope/outputs; ONLY fix the code so it runs end-to-end.\n"
-            + "- Keep DB auto-select (hyphen filenames), inclusive ranges, assume 2025; MAC-map audit guard; GV point-ignore; safe _print_links.\n"
+            + "- Keep DB auto-select (hyphen), inclusive ranges, assume 2025; MAC-map guard; GV _safe_point_ignore; safe _print_links.\n"
             + "- Fix NameErrors from mis-typed loop variables (replace brittle comprehensions with helpers if needed).\n"
             + "- Ensure constants exist (ROOT, LOGO, FLOORJSON, ZONES_JSON, out_dir) and are correctly referenced.\n"
             + "\n--- EXIT CODE ---\n"

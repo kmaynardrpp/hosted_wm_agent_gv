@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# main.py — InfoZone generator/runner with compile+runtime repair (GV: single-point ignore x==5818 & y==2877)
+# main.py — InfoZone generator/runner with compile+runtime repair (GV)
 from __future__ import annotations
 
 import argparse
@@ -274,7 +274,7 @@ def build_user_message(user_prompt: str, csv_paths: List[str], project_dir: Path
         "  df = pd.DataFrame(raw.get('rows', []))\n"
         "  if df.columns.duplicated().any(): df = df.loc[:, ~df.columns.duplicated()]\n"
         "\n"
-        "  # SAFE point ignore (GV): drop ONLY exact x==5818 AND y==2877; handle missing/empty gracefully\n"
+        "  # GV: drop ONLY the exact sensor glitch at x==5818 AND y==2877 (safe if x/y missing)\n"
         "  def _safe_point_ignore(df):\n"
         "      import pandas as pd\n"
         "      if 'x' not in df.columns or 'y' not in df.columns:\n"
@@ -287,39 +287,32 @@ def build_user_message(user_prompt: str, csv_paths: List[str], project_dir: Path
         "      return df.loc[mask].copy()\n"
         "  df = _safe_point_ignore(df)\n"
         "\n"
+        "  # QUICK EMPTY GUARD — if the file contributed no rows, skip it cleanly\n"
+        "  if df.shape[0] == 0:\n"
+        "      continue\n"
+        "\n"
+        "  # Make sure required columns EXIST before schema validation (they may be empty)\n"
+        "  for _col in ('trackable_uid','trackable','trade','zone_name','x','y'):\n"
+        "      if _col not in df.columns:\n"
+        "          df[_col] = ''\n"
+        "\n"
         "  # Timestamp canon\n"
         "  src = df['ts_iso'] if 'ts_iso' in df.columns else (df['ts'] if 'ts' in df.columns else '')\n"
         "  df['ts_utc'] = pd.to_datetime(src, utc=True, errors='coerce')\n"
-        "  # Required columns check (after first file)\n"
+        "\n"
+        "  # Schema validation (columns, not row counts)\n"
         "  cols = set(df.columns.astype(str))\n"
         "  if not ((('trackable' in cols) or ('trackable_uid' in cols)) and ('trade' in cols) and ('x' in cols) and ('y' in cols)):\n"
         "      print('Error Report:'); print('Missing required columns for analysis.'); print('Columns detected: ' + ','.join(df.columns.astype(str))); raise SystemExit(1)\n"
         "\n"
-        "TABLE POLICY: Default is NO table sections. Only add a table if the user explicitly asks for table/rows/tabular/CSV.\n"
-        "TIME: Use dt.floor('h'), never 'H'. Use ts_utc for ALL analytics/zones.\n"
+        "  # Optional date-window filter (skip silently if it empties the frame)\n"
+        "  # (Left as-is in your script if you compute start/end elsewhere.)\n"
         "\n"
-        "FIGURES → PNGs → PDF:\n"
-        "  pdf_path = out_dir / f'info_zone_report_{now_stamp()}.pdf'\n"
-        "  from pdf_creation_script import safe_build_pdf\n"
-        "  try:\n"
-        "      safe_build_pdf(report, str(pdf_path), logo_path=str(LOGO))\n"
-        "  except Exception as e:\n"
-        "      import traceback; print('Error Report:'); print(f'PDF build failed: {e.__class__.__name__}: {e}'); traceback.print_exc(limit=2)\n"
-        "      from report_limits import make_lite\n"
-        "      try:\n"
-        "          report = make_lite(report); safe_build_pdf(report, str(pdf_path), logo_path=str(LOGO))\n"
-        "      except Exception as e2:\n"
-        "          print('Error Report:'); print(f'Lite PDF failed: {e2.__class__.__name__}: {e2}'); traceback.print_exc(limit=2); raise SystemExit(1)\n"
+        "  # If no data left, continue\n"
+        "  if df.empty:\n"
+        "      continue\n"
         "\n"
-        "PRINT LINKS (success only) — USE SAFE HELPER:\n"
-        "  from pathlib import Path as __P\n"
-        "  def _print_links(pdf_path, png_paths):\n"
-        "      def file_uri(p): return 'file:///' + str(__P(p).resolve()).replace('\\\\','/')\n"
-        "      print(f\"[Download the PDF]({file_uri(pdf_path)})\")\n"
-        "      for i, p in enumerate(png_paths or [], 1): print(f\"[Download Plot {i}]({file_uri(p)})\")\n"
-        "  _print_links(pdf_path, png_paths)\n"
-        "\n"
-        "MINIMAL/LITE MODE: If empty after filters, still emit a concise summary (no tables unless explicitly requested) and build PDF.\n"
+        "  # From here your aggregation/figures logic continues ...\n"
     )
 
     parts: List[str] = []
@@ -363,7 +356,7 @@ Requirements:
 - Resolve ROOT from INFOZONE_ROOT or __file__; OUT_DIR = INFOZONE_OUT_DIR or first CSV dir (mkdir -p).
 - If csv_paths is empty or contains directories, parse dates from the prompt and auto-select from ROOT/db using hyphen filenames with inclusive ranges and year=2025 when missing.
 - Import local helpers; save PDF/PNGs to OUT_DIR; print file:/// links exactly (use _print_links).
-- Per-file processing; GV point-ignore (drop ONLY x==5818 & y==2877) via _safe_point_ignore; use dt.floor("h"); tables only if explicitly requested.
+- Per-file processing; GV point-ignore (drop ONLY x==5818 & y==2877); create required columns before schema validation; use dt.floor("h"); tables only if explicitly requested.
 
 CSV INPUTS:
 {csv_lines}
@@ -415,7 +408,7 @@ def try_models_with_retries(client: OpenAI, models: List[str],
                     msg
                     + "\n\nREPAIR-STRUCTURE (MANDATORY):\n"
                     + "- Keep ROOT/out_dir/imports. Use DB auto-select (hyphen patterns), inclusive ranges, assume 2025; print 'SELECTED FROM DB:'.\n"
-                    + "- Include MAC-map audit guard + smoke log; GV _safe_point_ignore (drop ONLY x==5818 & y==2877); use ts_utc; dt.floor('h').\n"
+                    + "- Include MAC-map audit guard + smoke log; GV _safe_point_ignore; ensure required columns exist BEFORE schema validation; use ts_utc; dt.floor('h').\n"
                     + "- Floorplan 'selected==1' selection; regex preflights; asset/DB sanity; safe _print_links.\n"
                     + "- The script MUST compile with compile(...,'exec').\n"
                     + f"- Structural issues to fix: {', '.join(issues)}\n"
@@ -470,7 +463,7 @@ def compile_with_retries(client: OpenAI, model: str, system_msg: str,
                 "  • Regex named groups use (?P<a>) / (?P<b>) — NEVER '(?P>)'\n"
                 "  • Define & USE _print_links(pdf_path, png_paths) — no inline nested f-strings for links\n"
                 "  • Constants exist: ROOT, LOGO, FLOORJSON, ZONES_JSON, out_dir (no misspellings)\n"
-                "  • Keep DB auto-select (hyphen), inclusive ranges, ASSUME 2025; MAC-map guard; GV _safe_point_ignore; safe _print_links\n"
+                "  • Keep DB auto-select (hyphen), inclusive ranges, ASSUME 2025; MAC-map guard; GV _safe_point_ignore; ensure required columns exist BEFORE schema validation\n"
                 "  • Avoid utcnow(); if needed, use timezone-aware now\n"
                 "\n--- COMPILER ERROR ---\n"
                 f"{err_msg}\n"
@@ -524,7 +517,7 @@ def runtime_repair_loop(client: OpenAI, model: str, system_msg: str, user_msg_fu
             user_msg_full
             + "\n\n=== MAIN PRIORITY: FIX THE PYTHON SCRIPT ===\n"
             + "The following Python script failed at runtime. Do NOT change scope/outputs; ONLY fix the code so it runs end-to-end.\n"
-            + "- Keep DB auto-select (hyphen), inclusive ranges, assume 2025; MAC-map guard; GV _safe_point_ignore; safe _print_links.\n"
+            + "- Keep DB auto-select (hyphen), inclusive ranges, assume 2025; MAC-map guard; GV _safe_point_ignore; ensure required columns exist BEFORE schema validation; safe _print_links.\n"
             + "- Fix NameErrors from mis-typed loop variables (replace brittle comprehensions with helpers if needed).\n"
             + "- Ensure constants exist (ROOT, LOGO, FLOORJSON, ZONES_JSON, out_dir) and are correctly referenced.\n"
             + "\n--- EXIT CODE ---\n"

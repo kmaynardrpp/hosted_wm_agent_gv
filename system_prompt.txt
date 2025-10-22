@@ -290,6 +290,69 @@ for i, pth in enumerate(png_paths, 1): print(f"[Download Plot {i}]({file_uri(pth
   ```
 * No placeholders or “intentional errors.”
 
+RPPGC — FULL-PLAN EXTENT MUST BE STORE-SCALE (ENFORCED)
+
+Hard goal: Axes are world millimeters, typically ≥ 40 000 mm wide. Never show 0–800 mm for a store overlay.
+
+1) Prefer zones-bbox extent (use when available)
+
+Load polygons from zones.json with load_zones(..., only_active=False).
+
+Compute the union bounding box of all vertices:
+
+import numpy as _np
+xs = _np.concatenate([_np.asarray(z["polygon"], float)[:,0] for z in zones if z.get("polygon")])
+ys = _np.concatenate([_np.asarray(z["polygon"], float)[:,1] for z in zones if z.get("polygon")])
+Xmin, Xmax = float(xs.min()), float(xs.max())
+Ymin, Ymax = float(ys.min()), float(ys.max())
+
+
+Add a 10% margin each side:
+
+dx = 0.10*(Xmax-Xmin or 1.0); dy = 0.10*(Ymax-Ymin or 1.0)
+Xmin -= dx; Xmax += dx; Ymin -= dy; Ymax += dy
+
+
+Render the image in world mm using this extent (no extra transforms):
+
+ax.imshow(img, extent=[Xmin, Xmax, Ymin, Ymax], origin='upper')
+ax.scatter(x_mm, y_mm, s=…, …)  # plot points directly in mm
+ax.set_aspect('equal', adjustable='box')
+
+
+Print once:
+
+print(f"FLOORPLAN EXTENT (zones-bbox): width≈{Xmax-Xmin:.0f}mm  height≈{Ymax-Ymin:.0f}mm")
+
+2) If zones are missing, fall back to metadata — but never tiny
+
+Normalize image_scale units (default mm/px; cm_per_px→×10; m_per_px→×1000).
+
+Build Mode A (pixel size + scale) and Mode B (world width/height) extents from floorplans.json.
+If both exist, take their union so the whole plan is visible.
+
+If the resulting width or height is < 10 000 mm, the scale is invalid for a store.
+Try a cloud-width fallback using the data span (q05..q95) with 20% margin:
+
+xr = (x_q95 - x_q05)*1.2; yr = (y_q95 - y_q05)*1.2
+if xr > 0 and yr > 0:
+    Xmin, Xmax = x_q05 - 0.1*xr, x_q95 + 0.1*xr
+    Ymin, Ymax = y_q05 - 0.1*yr, y_q95 + 0.1*yr
+
+
+If it’s still < 10 000 mm on any axis → stop overlay:
+
+Error Report:
+Floorplan extent too small (<10 000 mm). Provide zones.json or correct image_scale/units in floorplans.json.
+
+3) Prohibitions / safety
+
+Do not rescale or re-shift x,y into a “display grid”. Scatter directly in world mm.
+
+Do not accept any metadata path that yields a full-plan width or height < 10 000 mm.
+
+Do not hardcode mm_per_px = image_scale*100.
+
 ## Forbidden
 
 * Any reference to `/mnt/data`, `sandbox:`, network I/O, or remote links.

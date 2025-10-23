@@ -152,71 +152,117 @@ Canonicalize polygon names the same way and use canonical names for overlay look
 
 Never mix raw and canonical keys in the same dict; skip Trailer after canonicalization.
 
-FLOORPLAN — anchor the raster by plan offsets (authoritative), show full plan
+FLOORPLAN — anchor by plan offsets (authoritative) + calibrate scale vs zones; show full plan
 
-Why this matters for GV: Scaling may be correct while the image is shifted (e.g., down and right) if you ignore the plan’s offsets. Always place the raster using the plan’s center offsets (image_offset_x/y) and size, then expand the axes to show the whole plan. Do not reposition the image using zones; use zones only to widen the view if needed.
+Problem observed: good scaling but image shifted (wrong origin) or image tiny while axes are store-scale.
+Fix: 1) Always place the raster by the plan center and pixel size (authoritative), then 2) calibrate mm/px against the zones bbox (if available) using power-of-10 factors, without changing the center. 3) Use zones bbox only to widen axis limits; do not move the image.
 
-1) Plan selection (unchanged)
+1) Image discovery (robust)
 
-Choose the JSON entry with "selected": 1 that also matches the raster filename (basename in display_name/filename).
+Search at repo root for:
+floorplan.png, floorplan.jpg, floorplan.jpeg, Floorplan.*, and a generic floorplan.* glob.
+If none found →
 
-If none are selected, match by filename; else the first entry.
+Error Report:
+Floorplan image not found at root. Attempted: floorplan.(png|jpg|jpeg) and Floorplan.(png|jpg|jpeg)
 
-2) Units (normalization)
+2) Plan selection
 
-Treat image_scale as mm/px by default. If a unit exists:
-"mm_per_px" → as-is; "cm_per_px" → ×10; "m_per_px" → ×1000.
+From floorplans.json choose the entry with "selected": 1 whose display_name/filename basename matches the raster filename.
+If none are selected, match by filename; else use the first entry.
 
-3) Compute the plan-anchored image extent (authoritative placement)
+3) Units (normalize mm/px)
+
+Treat image_scale as mm/px by default. If explicit units exist:
+
+mm_per_px → as-is
+
+cm_per_px → ×10
+
+m_per_px → ×1000
+If value is missing/<=0, set a provisional mm_per_px = 1.0 (will be calibrated).
+
+4) Authoritative placement by offsets (do not shift to 0-based)
 
 Let:
 
-img_w_px, img_h_px = raster pixel dimensions (read from the loaded image)
+img_w_px, img_h_px = raster pixel dimensions (from the loaded image)
 
 x_c, y_c = plan image_offset_x, image_offset_y (center in world mm)
 
-mm_px = normalized image_scale (mm/px)
+mm_px = mm/px (after normalization; may be calibrated next)
 
-If plan stores width/height in pixels (common):
+Compute plan-anchored image extent:
 
-x_min = (x_c - img_w_px/2)  * mm_px
-x_max = (x_c + img_w_px/2)  * mm_px
-y_min = (y_c - img_h_px/2)  * mm_px
-y_max = (y_c + img_h_px/2)  * mm_px
-
-
-If plan also provides explicit world width/height with units, you may compute a world extent from those; if both pixel-based and world-based extents are available, use the pixel-based placement above for the image extent (so offsets remain authoritative), and use the world extent only to widen axes (next step).
-
-Render the raster in world mm (no ad-hoc shifts, no 0-based display coords):
-
+x_min = (x_c - img_w_px/2.0) * mm_px
+x_max = (x_c + img_w_px/2.0) * mm_px
+y_min = (y_c - img_h_px/2.0) * mm_px
+y_max = (y_c + img_h_px/2.0) * mm_px
 ax.imshow(img, extent=[x_min, x_max, y_min, y_max], origin='upper')
 ax.set_aspect('equal', adjustable='box')
 
-4) Show the full plan (axes limits), but do not move the image
+5) Scale calibration vs zones bbox (keep center; adjust mm/px only)
 
-If zones.json is available, compute the union bounding box of all zone vertices; expand by ~10% margin and union it with the plan extent to set axis limits only:
+If zones are available:
 
-# Do NOT change imshow extent. Only widen ax limits if needed:
-ax.set_xlim(min(plan_x_min, zones_x_min), max(plan_x_max, zones_x_max))
-ax.set_ylim(min(plan_y_min, zones_y_min), max(plan_y_max, zones_y_max))
+Compute the union bbox of all polygons: (Zmin_x, Zmax_x), (Zmin_y, Zmax_y), and its width/height Zw = Zmax_x−Zmin_x, Zh = Zmax_y−Zmin_y.
+
+Compute the current image span Iw = (x_max−x_min), Ih = (y_max−y_min).
+
+If Iw or Ih are implausible (e.g., < 10_000 mm) or far from zones (e.g., Iw < 0.5*Zw or Iw > 2.5*Zw OR likewise for Ih), then calibrate mm/px around powers-of-10:
+
+# Try factors on mm_px: [0.01, 0.1, 1, 10, 100, 1000]
+candidates = [mm_px*(10**k) for k in (-2,-1,0,1,2,3)]
+# score by fit to zones width/height (closer is better, prefer enclosing zones)
+def _score(s):
+    iw = img_w_px * s; ih = img_h_px * s
+    # penalize if smaller than zones bbox
+    penalty = 0.0
+    if iw < 0.9*Zw: penalty += (0.9*Zw - iw) / max(Zw,1.0)
+    if ih < 0.9*Zh: penalty += (0.9*Zh - ih) / max(Zh,1.0)
+    # closeness term
+    closeness = max(iw/Zw, Zw/iw, ih/Zh, Zh/ih)
+    return penalty*100 + closeness
+mm_px = min(candidates, key=_score)
+# recompute x_min/x_max/y_min/y_max with calibrated mm_px; keep x_c,y_c unchanged
 
 
-Never replace the image extent with the zones bbox. The image must stay anchored by (x_c,y_c) and the raster size.
+Do not change x_c,y_c. Only change mm_px and recompute the extent.
 
-5) Scatter points directly in world mm
+6) Show full plan (axes only)
+
+Compute zones bbox and plan extent; set axis limits to the union with ~10% margin:
+
+ax.set_xlim(min(x_min, Zmin_x)-0.1*(max(x_max,Zmax_x)-min(x_min,Zmin_x)),
+            max(x_max, Zmax_x)+0.1*(max(x_max,Zmax_x)-min(x_min,Zmin_x)))
+ax.set_ylim(min(y_min, Zmin_y)-0.1*(max(y_max,Zmax_y)-min(y_min,Zmin_y)),
+            max(y_max, Zmax_y)+0.1*(max(y_max,Zmax_y)-min(y_min,Zmin_y)))
+
+
+Never move the image by zones; zones only widen the view.
+
+7) Fallback if zones missing
+
+If mm_px*img_w_px or mm_px*img_h_px < 10 000 mm, try powers-of-10 escalations (×10, ×100, ×1000) on mm_px until width and height are ≥10 000 mm. Recompute extent each time.
+
+If still <10 000 mm → Error Report and abort overlay:
+
+Error Report:
+Floorplan extent too small (<10 000 mm). Provide zones.json or correct image_scale/units in floorplans.json.
+
+8) Scatter points directly in world mm
 ax.scatter(x, y, s=..., alpha=..., ...)  # no extra transform, no re-scaling
 
-6) Sanity diagnostics (print once)
+9) Diagnostics (print once)
 print(f"FLOORPLAN (GV): mm_per_px={mm_px:g}  plan_extent_w≈{x_max-x_min:.0f}mm  "
-      f"plan_extent_h≈{y_max-y_min:.0f}mm  img={os.path.basename(img_path)}  "
-      f"axes_w≈{(ax.get_xlim()[1]-ax.get_xlim()[0]):.0f}mm")
+      f"img={os.path.basename(img_path)}  axes_w≈{(ax.get_xlim()[1]-ax.get_xlim()[0]):.0f}mm")
 
 
 Prohibitions
 
 Do not compute a 0-based display grid (no dx0/dy0).
 
-Do not place the raster by zones bbox. Use zones only to widen axis limits, never to shift the image.
+Do not place the raster by zones bbox. Use zones only to widen axis limits.
 
 Do not hardcode mm_per_px = image_scale * 100.
 

@@ -152,68 +152,73 @@ Canonicalize polygon names the same way and use canonical names for overlay look
 
 Never mix raw and canonical keys in the same dict; skip Trailer after canonicalization.
 
-FLOORPLAN — always draw the full plan (world mm; no data fitting)
+FLOORPLAN — anchor the raster by plan offsets (authoritative), show full plan
 
-Axes must be store-scale (tens of thousands of mm).
+Why this matters for GV: Scaling may be correct while the image is shifted (e.g., down and right) if you ignore the plan’s offsets. Always place the raster using the plan’s center offsets (image_offset_x/y) and size, then expand the axes to show the whole plan. Do not reposition the image using zones; use zones only to widen the view if needed.
 
-Plan selection
+1) Plan selection (unchanged)
 
 Choose the JSON entry with "selected": 1 that also matches the raster filename (basename in display_name/filename).
 
-If none selected, match by filename; else the first entry.
+If none are selected, match by filename; else the first entry.
 
-Units (normalization)
+2) Units (normalization)
 
 Treat image_scale as mm/px by default. If a unit exists:
 "mm_per_px" → as-is; "cm_per_px" → ×10; "m_per_px" → ×1000.
 
-If JSON width/height are in pixels, you may compute a metadata extent; but prefer zones (below).
+3) Compute the plan-anchored image extent (authoritative placement)
 
-Preferred extent — zones bounding box
+Let:
 
-Load polygons: load_zones(str(ZONES_JSON), only_active=False).
+img_w_px, img_h_px = raster pixel dimensions (read from the loaded image)
 
-Compute the union bbox of all vertices and add a 10% margin each side:
+x_c, y_c = plan image_offset_x, image_offset_y (center in world mm)
 
-import numpy as _np
-xs = _np.concatenate([_np.asarray(z["polygon"], float)[:,0] for z in zones if z.get("polygon")])
-ys = _np.concatenate([_np.asarray(z["polygon"], float)[:,1] for z in zones if z.get("polygon")])
-Xmin, Xmax = float(xs.min()), float(xs.max())
-Ymin, Ymax = float(ys.min()), float(ys.max())
-dx = 0.10*(Xmax-Xmin or 1.0); dy = 0.10*(Ymax-Ymin or 1.0)
-Xmin -= dx; Xmax += dx; Ymin -= dy; Ymax += dy
+mm_px = normalized image_scale (mm/px)
+
+If plan stores width/height in pixels (common):
+
+x_min = (x_c - img_w_px/2)  * mm_px
+x_max = (x_c + img_w_px/2)  * mm_px
+y_min = (y_c - img_h_px/2)  * mm_px
+y_max = (y_c + img_h_px/2)  * mm_px
 
 
-Render image in world mm:
+If plan also provides explicit world width/height with units, you may compute a world extent from those; if both pixel-based and world-based extents are available, use the pixel-based placement above for the image extent (so offsets remain authoritative), and use the world extent only to widen axes (next step).
 
-ax.imshow(img, extent=[Xmin, Xmax, Ymin, Ymax], origin='upper')
+Render the raster in world mm (no ad-hoc shifts, no 0-based display coords):
+
+ax.imshow(img, extent=[x_min, x_max, y_min, y_max], origin='upper')
 ax.set_aspect('equal', adjustable='box')
 
+4) Show the full plan (axes limits), but do not move the image
 
-Scatter points directly in mm: ax.scatter(x, y, ...).
+If zones.json is available, compute the union bounding box of all zone vertices; expand by ~10% margin and union it with the plan extent to set axis limits only:
 
-Fallback if zones missing
-
-Normalize image_scale and compute an extent from metadata; if width or height is < 10 000 mm, try a “cloud bbox” (q05..q95 with +20% margin).
-
-If still < 10 000 mm on any axis → Error Report and abort overlay:
-
-Error Report:
-Floorplan extent too small (<10 000 mm). Provide zones.json or correct image_scale/units in floorplans.json.
+# Do NOT change imshow extent. Only widen ax limits if needed:
+ax.set_xlim(min(plan_x_min, zones_x_min), max(plan_x_max, zones_x_max))
+ax.set_ylim(min(plan_y_min, zones_y_min), max(plan_y_max, zones_y_max))
 
 
-Diagnostics (print once)
+Never replace the image extent with the zones bbox. The image must stay anchored by (x_c,y_c) and the raster size.
 
-print(f"FLOORPLAN EXTENT (mm): width≈{Xmax-Xmin:.0f}  height≈{Ymax-Ymin:.0f}  source={'zones-bbox' if zones_available else 'metadata'}")
+5) Scatter points directly in world mm
+ax.scatter(x, y, s=..., alpha=..., ...)  # no extra transform, no re-scaling
+
+6) Sanity diagnostics (print once)
+print(f"FLOORPLAN (GV): mm_per_px={mm_px:g}  plan_extent_w≈{x_max-x_min:.0f}mm  "
+      f"plan_extent_h≈{y_max-y_min:.0f}mm  img={os.path.basename(img_path)}  "
+      f"axes_w≈{(ax.get_xlim()[1]-ax.get_xlim()[0]):.0f}mm")
 
 
 Prohibitions
 
+Do not compute a 0-based display grid (no dx0/dy0).
+
+Do not place the raster by zones bbox. Use zones only to widen axis limits, never to shift the image.
+
 Do not hardcode mm_per_px = image_scale * 100.
-
-Do not switch points to a [0..W]×[0..H] “display” space; plot in mm only.
-
-Do not fit/scale the plan to the data cloud.
 
 Tables (only when explicitly requested)
 

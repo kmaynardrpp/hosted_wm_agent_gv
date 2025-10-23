@@ -1,298 +1,267 @@
-This repository hosts a llm powered analysis assistant for Walmart RTLS position data.
-You provide a prompt (e.g., “show electrician hours per zone last week”) and one or more CSVs; the system generates a PDF plus PNGs with an overlay on the store floor plan and any requested charts/tables.
+InfoZone RTLS Assistant
 
-It supports multiple sites (e.g., GC and GV). The code path is the same; site-specific assets & rules live in JSON/PNG and prompt files called out below.
+A local analysis assistant for Walmart RTLS position data.
+You give it a natural-language prompt and one or more CSVs; it generates a PDF report plus PNG charts/overlays on a store floor plan.
 
-Repository map (what each file does)
+This guide is site-agnostic (works for GC and GV). Site differences live in a few JSON/PNG assets and (optionally) the system prompt.
 
-Tip: Items marked 🔧 are site-specific and should be customized per store/site.
+Contents
 
-Core runtime
+Repository Layout
+
+Core Runtime
+
+Prompts & Guidance
+
+Site-Specific Assets (replace/customize per site)
+
+Data & Outputs
+
+Web Client / Reverse Proxy (optional)
+
+How the Overlay Uses the Right Scale
+
+Run Locally (CLI)
+
+Run Locally (Web API + Optional SPA)
+
+Docker
+
+Build the API Image
+
+Run the API Container
+
+docker-compose (API + Caddy HTTPS)
+
+Environment Variables
+
+Per-Site Checklist
+
+Repository Layout
+Core Runtime
 
 server.py
-FastAPI app that connects the web client to the backend. Handles:
+FastAPI app that exposes HTTP endpoints for the web client. It:
 
-receiving a prompt + files (uploads)
+receives prompts & uploads
 
-arranging work directories (e.g., uploads/ and .runs/)
+creates per-job directories under uploads/ and .runs/
 
-invoking main.py and returning logs/artifacts (PDF/PNGs)
+invokes main.py, streams logs, and returns artifacts (PDF & PNGs)
 
 main.py
 The orchestrator. It:
 
-builds the prompt (system + user)
+builds the full prompt (system + user + helper excerpts)
 
 calls the OpenAI Responses API
 
-validates/repairs the returned generated analysis script
+validates/repairs the generated analysis script (compile + runtime repair loops)
 
-executes it, captures output, and prints file links (file:///…)
+executes that script and prints file:///… links to the artifacts
 
-supports DB auto-select (choose CSVs from db/ based on dates in the prompt)
+supports DB auto-select (picks CSVs from db/ based on dates in the prompt)
 
 extractor.py
-Fast CSV → normalized rows:
+CSV → normalized rows:
 
-MAC/UID → trackable mapping (via 🔧trackable_objects.json)
+MAC/UID → trackable mapping via trackable_objects.json
 
-trade inference from trackable names
+trade inference from trackable labels
 
 timestamp canon (ts_utc, ts_iso, ts_short)
 
-zone name normalization (includes zone number when present, e.g., 2.1SalesFloor; removes Trailer)
+zone name normalization; preserves zone numbers (e.g., 2.1SalesFloor) and removes Trailer
 
-polygon fallback classification when only (x,y) are present (via 🔧zones.json)
+polygon fallback when only (x,y) exist (zones.json)
 
-GV only: single-point ignore (drops x==5818 & y==2877)
-GC uses a global crop (x≥12 000 & y≥15 000) — that rule lives in GC’s prompt/guidelines.
+GV: drops one bad point only (x==5818 & y==2877)
+(GC’s emergency floor crop is defined in the GC prompt, not here.)
 
 chart_policy.py
-Helpers for figure selection and drawing (overlay, hourly line, bar/pie, etc.). Reads floor plan metadata and draws overlays in world mm. It will:
-
-select the floor plan entry with "selected": 1 that matches the raster filename
-
-favor zones-bbox extent so the full plan is visible (axes in mm)
-
-render points directly in world mm (no extra scaling)
+Figure selection/drawing helpers (overlay, hourly, bar/pie). Reads floor-plan metadata and draws overlays in world mm.
 
 pdf_creation_script.py
-Composes the report:
-
-Summary, optional Charts (live matplotlib.Figures), optional Table
-
-outputs a single PDF
-
-also saves each figure as a PNG (DPI 120) before building the PDF
+Report composer (Summary / Charts / Tables) → PDF. Saves each figure to PNG (DPI 120) before building the PDF.
 
 zones_process.py
-Loads 🔧zones.json and computes dwell intervals with
-compute_zone_intervals(df, zones, id_col, ts_col='ts_utc', x_col='x', y_col='y').
+Loads store zones and computes dwell/intervals:
+
+compute_zone_intervals(df, zones, id_col, ts_col='ts_utc', x_col='x', y_col='y')
+
 
 report_limits.py
-Budgets (max figures, rows) and the lite fallback shaping.
+Budgets (max figures, rows) and “lite” fallback shaping.
 
 report_config.json
-Optional chart layout config (figure sizes, overlay settings, etc.).
+Optional chart/layout tuning (figure sizes, overlay options, etc.).
 
 requirements.txt
-Python dependencies (FastAPI/uvicorn, pandas/numpy/matplotlib, etc.).
+Python dependencies.
 
-Prompts & guidance (where per-site behavior is defined)
+Prompts & Guidance
 
-system_prompt.txt (🔧 often differs by site)
-Rules for the generator (e.g., GC crop vs GV one-point ignore; floor-plan policy; overlay ↔ table parity).
+system_prompt.txt (site-tunable)
+Strong rules for the generator (e.g., GC crop vs GV single-point ignore; full-plan overlay; overlay↔table zone parity; DB auto-select behavior).
 
 guidelines.txt
-Hard contracts enforced by the generated script (paths, plotting rules, PDFs/PNGs order, error reporting).
+Non-negotiable execution contracts (path rules, plotting order, error reporting, etc.).
 
 context.txt
-Optional background text included in prompts (non-code narrative).
+Optional background text included in prompts.
 
-Site-specific assets (replace per site)
+Site-Specific Assets (replace/customize per site)
 
-floorplans.json 🔧
-Metadata for one or more floor plans (width/height, image_offset_x/y, image_scale).
-Important:
+These are the only files you should swap per site.
 
-The entry corresponding to the raster you actually use must have "selected": 1.
+floorplan.png / .jpg / .jpeg
+The raster used under the overlay.
 
-Its display_name/filename basename must match the raster PNG/JPG you ship.
+floorplans.json
+Floor-plan metadata: width/height, image_offset_x/y, image_scale (units).
+Important: The plan that corresponds to your raster must have
+"selected": 1 and its display_name/filename basename must match the raster filename.
 
-zones.json 🔧
-Polygons with names/uids (set active as needed). Used for zone dwell, naming, and the zones-bbox (full plan extent).
+zones.json
+Store polygons (names/uids; set active as needed). Also used to compute the full-plan world extent so axes are tens of thousands of mm (not hundreds).
 
-trackable_objects.json 🔧
-Device MACs and/or UIDs mapped to friendly names (and IDs). Used by the extractor for identity/trade mapping.
-
-floorplan.png (or .jpg/.jpeg) 🔧
-The raster drawing used in overlays. Must match the selected: 1 plan entry in floorplans.json.
+trackable_objects.json
+Device MACs/UIDs → friendly names/IDs for mapping and trade inference.
 
 redpoint_logo.png
-Logo for the report header (optional; PDF will be built without if missing).
+Optional logo for the PDF header.
 
-Project data / outputs
+Data & Outputs
 
 db/ (optional)
-A local database of CSVs named positions_YYYY-MM-DD.csv (or tolerant postions_…).
-When a user asks “between 09-14 and 10-02”, the generator can auto-select files from db/.
+CSV library named positions_YYYY-MM-DD.csv (or tolerant postions_…).
+When the prompt mentions dates/ranges, the tool can auto-select matching files from here.
 
 uploads/
-The web server stores uploaded files here (volume-mounted in Docker).
+Web server deposits uploaded CSVs here (volume-mounted in Docker).
 
 .runs/
-Where main.py writes/executes generated scripts and drops final artifacts (PDF/PNGs).
+Generated scripts and final artifacts (PDF & PNGs) are written here.
 
-Web client / reverse proxy (optional)
+Web Client / Reverse Proxy (optional)
 
-web/infozone-web/ (or web/infozone-web-gv/)
-Vite/React SPA for a simple “ChatGPT-like” page to submit prompts & files.
+web/infozone-web/ (or per-site folder)
+Vite/React SPA for a simple chat-style UI.
 
-Caddyfile, docker-compose.yml, Dockerfile
-Turnkey hosting (HTTPS with Caddy + the API container).
-The compose file binds uploads/ and .runs/ as volumes so results persist.
+Dockerfile, docker-compose.yml, Caddyfile
+Container build & optional HTTPS proxy (Caddy). Compose mounts uploads/ & .runs/ to persist results.
 
-Files to customize per site
+How the Overlay Uses the Right Scale
 
-floorplan.png / .jpg / .jpeg 🔧
-The drawing to show under the overlay.
+Overlays render the raster in world millimeters, not pixels.
 
-floorplans.json 🔧
+Preferred extent is zones-bbox (union of zones.json polygons) with a small margin — this shows the entire plan at store scale (e.g., width ≈ 80 000 mm).
 
-Ensure the correct plan entry has "selected": 1.
+If zones are missing, metadata from floorplans.json is used. If metadata would yield a tiny extent (< 10 000 mm), the generator prints an Error Report rather than draw a misleading postage stamp.
 
-Its display_name/filename should basename-match floorplan.png.
+Points are plotted directly in mm (no extra display-space shifts).
 
-image_scale units: default mm/px. If a units field exists:
-
-mm_per_px → as-is
-
-cm_per_px → ×10
-
-m_per_px → ×1000
-
-zones.json 🔧
-
-Real store polygons & names; used for zone dwell and to compute the world extent for the raster (so axes are tens of thousands of mm, not hundreds).
-
-trackable_objects.json 🔧
-
-Per-site device inventory: MACs/UIDs and names (used by extractor.py).
-
-system_prompt.txt (recommend per site) 🔧
-
-GV: one-point ignore (drop exactly x==5818 & y==2877) and full-plan overlay (zones-bbox extent).
-
-GC: emergency floor crop (keep x≥12000 & y≥15000), also full-plan overlay.
-
-How the overlay gets the right scale
-
-The overlay draws the raster in world millimeters (not pixels).
-
-It prefers the zones-bbox from zones.json (union of polygons) with a small margin — this shows the entire plan at store scale (e.g., width ≈ 80 000 mm).
-
-If zones are missing, it will try metadata from floorplans.json. If the implied world width/height are tiny (< 10 000 mm), it prints an Error Report rather than render a misleading postage stamp.
-
-Running locally (CLI)
+Run Locally (CLI)
 
 Requires Python 3.11–3.12.
 
-Create venv & install
-
+# 1) Create and activate a venv
 python -m venv .venv
 # Windows
 .venv\Scripts\activate
 # macOS/Linux
 source .venv/bin/activate
 
+# 2) Install deps
 pip install -r requirements.txt
 
-
-Set environment (minimum)
-
-# macOS/Linux
-export OPENAI_API_KEY="sk-..."
+# 3) Set env (see full list below)
+export OPENAI_API_KEY="sk-..."           # PowerShell: $env:OPENAI_API_KEY="sk-..."
+export OPENAI_MODEL="gpt-5"              # optional
+export OPENAI_REASONING_EFFORT="medium"  # optional
 # optional:
-export OPENAI_MODEL="gpt-5"
-export OPENAI_REASONING_EFFORT="medium"
-export INFOZONE_ROOT="$(pwd)"             # if running outside repo root
-# use this to write PDFs/PNGs elsewhere:
-# export INFOZONE_OUT_DIR="/absolute/path/out"
+# export INFOZONE_OUT_DIR="/abs/output/dir"
+# export INFOZONE_ROOT="$(pwd)"
+
+# 4) Run with explicit CSVs
+python main.py "Show me electricians by zone from 09/23–09/26." \
+  /abs/path/positions_2025-09-23.csv /abs/path/positions_2025-09-24.csv
+
+# or let it pick from db/
+python main.py "Show electricians by zone from 09/23 to 09/26."
 
 
-(Windows PowerShell)
+The script prints file:///… links to the PDF and PNGs on success.
 
-$env:OPENAI_API_KEY="sk-..."
-$env:OPENAI_MODEL="gpt-5"
-$env:OPENAI_REASONING_EFFORT="medium"
-# optional:
-$env:INFOZONE_ROOT="$PWD"
-# $env:INFOZONE_OUT_DIR="C:\path\to\out"
+Run Locally (Web API + Optional SPA)
 
-
-Run from CLI
-
-# Example: ask for carpenters on two files
-python main.py "Show me carpenters positions on 09/25–09/26, one color per tag." \
-  /abs/path/positions_2025-09-25.csv /abs/path/positions_2025-09-26.csv
-
-
-Or let the tool auto-select from db/:
-
-python main.py "Show electricians positions from 09/23 to 09/26."
-
-
-You’ll get console links like:
-
-[Download the PDF](file:///.../info_zone_report_2025-09-23_to_2025-09-26.pdf)
-[Download Plot 1](file:///.../info_zone_report_2025-09-23_to_2025-09-26_plot01.png)
-
-Running locally (web API + optional SPA)
-
-API server
+API:
 
 uvicorn server:app --reload --port 8000
 
 
-Web client (if present)
+Web client (if present):
 
 cd web/infozone-web
 npm install
 npm run dev   # http://localhost:5173
 
 
-Configure the client to call your API host (set VITE_API_BASE in the web app if needed).
+Configure the client to call your API (VITE_API_BASE) if not on the same host/port.
 
-Docker (API only, or API + Caddy proxy)
-Build the API image
+Docker
+Build the API Image
 docker build -t infozone-api:latest .
 
-Minimal run
+Run the API Container
 docker run --rm -p 8000:8000 \
   -e OPENAI_API_KEY=sk-... \
   -e OPENAI_MODEL=gpt-5 \
   -v "$(pwd)/uploads:/app/uploads" \
   -v "$(pwd)/.runs:/app/.runs" \
   -v "$(pwd):/app" \
-  infozone-api:latest uvicorn server:app --host 0.0.0.0 --port 8000
+  infozone-api:latest \
+  uvicorn server:app --host 0.0.0.0 --port 8000
 
-docker-compose (API + Caddy with HTTPS)
+docker-compose (API + Caddy HTTPS)
 
-Make sure uploads/ and .runs/ exist on the host (so results persist).
-
-Set your domain (DuckDNS or real) in Caddyfile and DNS record.
+Ensure uploads/ and .runs/ exist on the host for persistence. Set your domain (DuckDNS or other) in Caddyfile and DNS.
 
 docker compose up -d --build
 docker compose logs -f api
 docker compose logs -f caddy
 
-Environment variables (summary)
-Variable	Required	Purpose	Typical
-OPENAI_API_KEY	✅	OpenAI API key for the Responses API	sk-…
-OPENAI_MODEL		Default model selection	gpt-5
+Environment Variables
+Name	Required	Description	Example
+OPENAI_API_KEY	✅	OpenAI API key (Responses API)	sk-...
+OPENAI_MODEL		Default model	gpt-5
 OPENAI_REASONING_EFFORT		Reasoning budget	low | medium | high
-RTLS_CODE_TIMEOUT_SEC		Max seconds for generated code run	1800
-INFOZONE_ROOT		Force project root if running elsewhere	repo absolute path
-INFOZONE_OUT_DIR		Where to write PDF/PNGs (overrides default)	absolute path
-IZ_MAX_OUTPUT_TOKENS		Cap model output size	24000
-IZ_CONTEXT_CAP, IZ_HELPER_CAP		Size caps for context/helper excerpts	30000
+RTLS_CODE_TIMEOUT_SEC		Max seconds for generated script run	1800
+INFOZONE_ROOT		Forces project root if running elsewhere	/app
+INFOZONE_OUT_DIR		Output dir for PDF/PNGs	/app/.runs/job_*/
+IZ_MAX_OUTPUT_TOKENS		Model output cap	24000
+IZ_CONTEXT_CAP		Max chars for context.txt excerpt	30000
+IZ_HELPER_CAP		Max chars per helper excerpt	30000
+Per-Site Checklist
 
-Site-specific assets (floorplan*.png, floorplans.json, zones.json, trackable_objects.json) must exist under ROOT. In floorplans.json the correct plan must have "selected": 1 and its display_name/filename must match the raster file you ship.
+floorplan.png (or .jpg/.jpeg) exists under the repo root.
 
-Quick checklist (per site)
+floorplans.json
 
-🔧 floorplan.png present & matches selected:1 entry
+The correct plan has "selected": 1.
 
-🔧 floorplans.json has correct offsets/scale (units in mm/px or tagged)
+display_name/filename basename matches the raster filename.
 
-🔧 zones.json polygons loaded; names match your conventions
+image_scale uses mm/px (or specify units: cm_per_px → ×10, m_per_px → ×1000).
 
-🔧 trackable_objects.json up-to-date with MACs/UIDs → names
+zones.json contains the real store polygons (set active appropriately).
 
-system_prompt.txt is the correct variant:
+trackable_objects.json contains the store’s MAC/UID inventory.
 
-GV → single-point ignore only (x==5818 & y==2877)
+system_prompt.txt is set for the site:
 
-GC → global floor crop (x≥12000 & y≥15000)
+GV: one-point ignore only; full-plan (zones-bbox) overlay.
 
-OPENAI_API_KEY set, uploads/ & .runs/ exist (writable)
+GC: floor crop x≥12000 & y≥15000; full-plan overlay.
+
+If these are correct, the overlay axes should be store-scale (e.g., width ≈ 80 000 mm), tables and overlays will label zones consistently, and the report will save to .runs/ (and print file:///… links).
